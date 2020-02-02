@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package task;
+
+service BGPTasker {
+    rpc AddRawParse (FilePath) returns (TaskReply) {}
+    rpc AddBGPParse (FilePath) returns (TaskReply) {}
+}
+
+message FilePath {
+    string path = 1;
+}
+
+message TaskReply {
+    string message = 1;
+}
