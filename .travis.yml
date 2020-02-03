@@ -14,9 +14,8 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: S3cmYiZXN+LN1pOMHn/eK2o8pg4oqYET0n/jNl6J6D3kfZbv5AdmC7Glyoj7p8NnXbqPKA5K8vhR3hNoSQCF42B+exOk3jdHrr2C3zrI04upnaCxpcmrNAcoltRzk2d4S6hUEuEmtdSz/mvGkaF+wUeuzeDmbrkReiS6jjT82/WadaZS6A45/KPW1gDvxGAAXa55dmJA0h/r17ozOkjXfQQerYPye89SJ9ffEuL3a6FylM4EdMP+/5VEmTeYrv4eJzeAGC/8EeJsivxDqgrjlCwCuNkD3O3H2luOtrAJzPB4U3gdWuKKFwxbZpxMhY4wXwzUMVpDOskl8dp/v6R0RrwSbq1SF1Sz9UevWEh8n25hR3CNIHGOqXdf6enwo+ZZ3pCziw7sSQeQ9EJ8yO3bppdDRsH5HFEdh2NTuzVCmS25NKy0ZJ2wJv8159ePaKpExbac1p4C1fTws2JUm15QZqc83McX8Y+OI1fMdDKBdkqI2jRyPck759hwr9wjM/hR7T7XjgHkQ106y6q+ocimaxjU+73tOMbRcYnbj8RW8oxBIuJHZ+aziky3ZH6aGnRMSZpI+tchKqDkYkMIlQ/7JTLF5L5tYCT0k6S2s5auYxkDVut/AeFsnv31sZrLcBUWM7jKMPa5RngMYm14ujIbGVzJLeeA7tP3MVQ3S3h7igw=
+    secure: jpgW48ebSxAWpybEWm8JqfQUf672ADCEwWHe5kG3AufCV1tPtZ1IdfRezai3cHEPdWrQIH6Qvg+63DlFuKCogga1dz3Ms89vQ+ElgzcfM28d9crbN8+dWq1X7zXENznFF5s01s58KKMK0qFxj7tpYKftq6iZBqSwglW6N7slbt6nyB/+9rrQBVEXGPtwTzY1t7kKaK3HGUjEtbWcjyqDgq9ZsMVYrWqo+Dcwa5VrUpA4K25uBj3wIm8rCHn651cRQXpo8bsZpR7Nm4IE62i4PwXJ6wkHnmvLlkZVwyECDNUOtUFMJKYpeNjPS/oWukBJTbtQ6u7852AgjBRW720jTjXHpnZ7f6XaBgjOqJgdCuJMjERdjF+2FPLrO1RZ0DtdRDEK/QqGbktx1uKcSi90P5ef/uZthNhwCuLk6Nwmkqi5yQCio+vLC5iYsPa2YDO8NXkk0QNWerz+B4J40FERmkIez/Du+w/SELZCNRvFx7ZRoN95EFF4+B5hoj+PGJyZiiBfkMDDgn1pQPXouXXy7YbURPudQ+7uFZbAHwpaW2+Tpp8P1nuCtrA0wkcHA9WW/WXEKsdG0A0XgKScyNDl9VIz3Yky6yTmljrLnsI5iDmnghE5hlbGErC/iJUCLhwYfm8jUhealX1HMFuoXq3kd9SOnbGiSuw7kFQNqVJNvBo=
   file:
-    - BGPParser-darwin-amd64.zip
     - BGPParser-linux-386.zip
     - BGPParser-linux-amd64.zip
     - BGPParser-linux-arm.zip
@@ -31,7 +30,6 @@ deploy:
     - BGPParser-freebsd-amd64.zip
     - BGPParser-windows-386.zip
     - BGPParser-windows-amd64.zip
-  skip_cleanup: true
+  skip_cleanup: true      
   on:
-    tags: true
-
+    tags: yes
