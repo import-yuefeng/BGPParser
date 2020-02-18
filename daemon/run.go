@@ -1,31 +1,35 @@
 package daemon
 
 import (
-	log "github.com/sirupsen/logrus"
-	"os"
-	"io"
-	"time"
-	"sync"
 	"bufio"
 	"bytes"
+	"context"
+	"io"
+	"os"
 	"strings"
-	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
+	"sync"
+	"time"
+
 	gobgpdump "github.com/CSUNetSec/gobgpdump"
+	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
+	log "github.com/sirupsen/logrus"
 )
 
 type MetaData struct {
-	AsPathMap map[string]*analysis.BGPInfo
-	rw *sync.RWMutex
+	AsPathMap sync.Map
 }
 
-func readBGPData(fileName string, ch chan *string) {
+func readBGPData(fileName string, ch chan *string, cancel context.CancelFunc) error {
 	bgpFP, err := os.Open(fileName)
 	if err != nil {
 		log.Traceln(err)
-		return
+		return err
 	}
 
 	defer bgpFP.Close()
+	defer cancel()
+	defer close(ch)
+
 	reader := bufio.NewReader(bgpFP)
 
 	var segment bytes.Buffer
@@ -34,16 +38,15 @@ func readBGPData(fileName string, ch chan *string) {
 		if err != nil {
 			if err == io.EOF {
 				log.Infoln("File read ok!")
-				break
-			} else {
-				log.Warnln("Read file error!", err)
-				return
+				return nil
 			}
+			log.Warnln("Read file error!", err)
+			return err
 		}
 		if !strings.Contains(line, "MRT") {
 			if _, err := segment.WriteString(line); err != nil {
 				log.Traceln(err)
-				return
+				return err
 			}
 		} else {
 			tmp := segment.String()
@@ -53,47 +56,56 @@ func readBGPData(fileName string, ch chan *string) {
 	}
 }
 
-func (a *MetaData) addAspath(a1 *analysis.BGPInfo) {
-	a.rw.Lock()
-	if res, ok := a.AsPathMap[a1.Hashcode]; ok {
-		res.Prefix = append(res.Prefix, a1.Prefix[0])
-	} else {
-		a.AsPathMap[a1.Hashcode] = a1
+func (md *MetaData) addAspath(a1 *analysis.BGPInfo) {
+	if tmp, ok := md.AsPathMap.LoadOrStore(a1.Hashcode, a1); ok {
+		if res, ok := tmp.(*analysis.BGPInfo); ok {
+			res.Prefix = append(res.Prefix, a1.Prefix[0])
+		}
 	}
-	a.rw.Unlock()
 }
 
-func (md *MetaData) parseBGPData(fileName string, parserWC int) {
+func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST {
 
-	ch := make(chan *string, parserWC*1000)
-	for i:=0; i<parserWC*1000; i++ {
-		go func(md *MetaData) {
+	ch := make(chan *string, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(parserWC * 1000)
+	go readBGPData(fileName, ch, cancel)
+
+	for i := 0; i < parserWC*1000; i++ {
+		go func(md *MetaData, ctx context.Context) {
 			for {
-				if line, ok := <- ch; ok {
-					if len(*line) == 0 {
-						continue
+				select {
+				case <-ctx.Done():
+					if len(ch) == 0 {
+						wg.Done()
+						return
 					}
-					a1 := analysis.NewBGPInfo(*line)
-					a1.AnalysisBGPData()
-					// BGPInfoChannel<-a1
-					md.addAspath(a1)
+				case line, ok := <-ch:
+					if ok {
+						if len(*line) == 0 {
+							continue
+						}
+						a1 := analysis.NewBGPInfo(*line)
+						line = nil
+						a1.AnalysisBGPData()
+						md.addAspath(a1)
+					}
 				}
 			}
-		}(md)
+		}(md, ctx)
 	}
-
-	readBGPData(fileName, ch)
+	wg.Wait()
 	root := analysis.NewBGPBST()
-	if len(ch) == 0 {
-		md.rw.Lock()
-		for _, v := range md.AsPathMap {
-			// fmt.Println(i, v.Prefix)
-			root.Insert(v)
+	md.AsPathMap.Range(func(k, v interface{}) bool {
+		if t, ok := v.(*analysis.BGPInfo); ok {
+			root.Insert(t)
+			log.Infoln(t.Prefix)
 		}
-		md.rw.Unlock()		
-	}
-	log.Infoln(root.Search("1.1.1.1"))
-	log.Infoln(root.Search("114.114.114.114.114"))
+		return true
+	})
+
+	return root
 }
 
 func parseBGPRAWData(configFile gobgpdump.ConfigFile) {
@@ -113,4 +125,3 @@ func parseBGPRAWData(configFile gobgpdump.ConfigFile) {
 	wg.Wait()
 	dc.SummarizeAndClose(dumpStart)
 }
-

@@ -3,11 +3,11 @@ package analysis
 // package main
 
 import (
-	"fmt"
-	"strings"
-	"strconv"
 	"errors"
-	
+	"fmt"
+	"strconv"
+	"strings"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,9 +20,9 @@ type BGPBST struct {
 // type IPSegmentHashcode string
 
 type IPAddr struct {
-	bit Bit
+	bit         Bit
 	Left, Right *IPAddr
-	Hashcode string
+	Hashcode    string
 }
 
 func NewIPAddr(bit Bit) *IPAddr {
@@ -40,7 +40,7 @@ func NewBGPBST() *BGPBST {
 func (r *BGPBST) Search(ipaddr string) (Hashcode string, isExist error) {
 	cur := r.root
 	bs := getBitIPAddr(ipaddr)
-	for i:=0; i<24; i++ {
+	for i := 0; i < 24; i++ {
 		if cur == nil || cur.Hashcode == "" {
 			return "", errors.New("Not find")
 		}
@@ -57,14 +57,14 @@ func getBitIPAddr(ipaddr string) []byte {
 	bs := make([]byte, 24)
 	count := 0
 	ip := strings.Split(ipaddr, ".")
-	for index:=0; index<3; index++ {
-		flag := 1<<7
+	for index := 0; index < 3; index++ {
+		flag := 1 << 7
 		cur, err := strconv.Atoi(ip[index])
 		if err != nil {
 			log.Traceln(err)
 			return bs
 		}
-		for i:=0; i<8; i++ {
+		for i := 0; i < 8; i++ {
 			bs[count] = byte(cur & flag)
 			flag >>= 1
 			count++
@@ -77,10 +77,14 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 	root := r.root
 
 	for _, ipSegment := range b.Prefix {
-		ipv4Address := strings.Split(ipSegment, "/")[0]
+		tmp := strings.Split(ipSegment, "/")
+		if len(tmp) == 0 {
+			return
+		}
+		ipv4Address := tmp[0]
 		cur := root
 		bs := getBitIPAddr(ipv4Address)
-		for i:=0; i<24; i++ {
+		for i := 0; i < 24; i++ {
 			if bs[i] == 0 {
 				if cur.Left == nil {
 					cur.Left = NewIPAddr(0)
@@ -91,7 +95,7 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 					cur.Right = NewIPAddr(1)
 				}
 				cur = cur.Right
-			}	
+			}
 		}
 		cur.Hashcode = b.Hashcode
 	}
@@ -108,5 +112,3 @@ func a(root *IPAddr) {
 	a(root.Left)
 	a(root.Right)
 }
-
-

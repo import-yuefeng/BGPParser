@@ -6,12 +6,12 @@ import (
 
 const (
 	PREFIX_ADDRESS = "PREFIX: (?:(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\/([1-9]|[1-2]\\d|3[0-2])"
-	AS_PATH = "AS-Path: \\(\\[([\\d\\s]+)\\]\\)"
+	AS_PATH        = "AS-Path: \\(\\[([\\d\\s]+)\\]\\)"
 )
 
 var (
 	PREFIX_ADDRESS_REGEXP = regexp.MustCompile(PREFIX_ADDRESS)
-	AS_PATH_REGEXP = regexp.MustCompile(AS_PATH)
+	AS_PATH_REGEXP        = regexp.MustCompile(AS_PATH)
 )
 
 func (b *BGPInfo) FindAsPath() []string {
@@ -19,7 +19,7 @@ func (b *BGPInfo) FindAsPath() []string {
 		return []string{}
 	}
 	tmp := AS_PATH_REGEXP.FindAllStringSubmatch(b.content, -1)
-	for i:=0; i<len(tmp); i++ {
+	for i := 0; i < len(tmp); i++ {
 		for _, v := range tmp[i][1:] {
 			b.Aspath = append(b.Aspath, v)
 		}
@@ -29,4 +29,8 @@ func (b *BGPInfo) FindAsPath() []string {
 
 func (b *BGPInfo) FindPrefix() {
 	b.Prefix = PREFIX_ADDRESS_REGEXP.FindAllString(b.content, 1)
+}
+
+func (b *BGPInfo) CleanContent() {
+	b.content = ""
 }

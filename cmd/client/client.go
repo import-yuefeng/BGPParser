@@ -1,8 +1,8 @@
 package client
 
 import (
-	test "github.com/import-yuefeng/BGPParser/pb/test"
 	task "github.com/import-yuefeng/BGPParser/pb/task"
+	test "github.com/import-yuefeng/BGPParser/pb/test"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -10,7 +10,7 @@ import (
 )
 
 type Client struct {
-	conn *grpc.ClientConn
+	conn    *grpc.ClientConn
 	address string
 }
 
@@ -21,7 +21,7 @@ func NewClient(address string) *Client {
 		log.Fatalf("did not connect: %v", err)
 	}
 	return &Client{
-		conn: conn,
+		conn:    conn,
 		address: address,
 	}
 }
@@ -46,6 +46,10 @@ func (c *Client) AddRawParse(filepath string) {
 
 func (c *Client) AddBGPParse(filepath string) {
 	addBGPParse(c.conn, filepath)
+}
+
+func (c *Client) Search(ip string) {
+	search(c.conn, ip)
 }
 
 func sayHello(conn *grpc.ClientConn) {
@@ -78,4 +82,12 @@ func addBGPParse(conn *grpc.ClientConn, filepath string) {
 	log.Println(r.Message)
 }
 
+func search(conn *grpc.ClientConn, ip string) {
+	c := task.NewAPIClient(conn)
 
+	r, err := c.SearchIP(context.Background(), &task.IPAddr{Ip: ip})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Println(r.Result)
+}

@@ -102,25 +102,110 @@ func (m *TaskReply) GetMessage() string {
 	return ""
 }
 
+type IPAddr struct {
+	Ip                   string   `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *IPAddr) Reset()         { *m = IPAddr{} }
+func (m *IPAddr) String() string { return proto.CompactTextString(m) }
+func (*IPAddr) ProtoMessage()    {}
+func (*IPAddr) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ce5d8dd45b4a91ff, []int{2}
+}
+
+func (m *IPAddr) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_IPAddr.Unmarshal(m, b)
+}
+func (m *IPAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_IPAddr.Marshal(b, m, deterministic)
+}
+func (m *IPAddr) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IPAddr.Merge(m, src)
+}
+func (m *IPAddr) XXX_Size() int {
+	return xxx_messageInfo_IPAddr.Size(m)
+}
+func (m *IPAddr) XXX_DiscardUnknown() {
+	xxx_messageInfo_IPAddr.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IPAddr proto.InternalMessageInfo
+
+func (m *IPAddr) GetIp() string {
+	if m != nil {
+		return m.Ip
+	}
+	return ""
+}
+
+type SearchReply struct {
+	Result               string   `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SearchReply) Reset()         { *m = SearchReply{} }
+func (m *SearchReply) String() string { return proto.CompactTextString(m) }
+func (*SearchReply) ProtoMessage()    {}
+func (*SearchReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ce5d8dd45b4a91ff, []int{3}
+}
+
+func (m *SearchReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SearchReply.Unmarshal(m, b)
+}
+func (m *SearchReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SearchReply.Marshal(b, m, deterministic)
+}
+func (m *SearchReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SearchReply.Merge(m, src)
+}
+func (m *SearchReply) XXX_Size() int {
+	return xxx_messageInfo_SearchReply.Size(m)
+}
+func (m *SearchReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_SearchReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SearchReply proto.InternalMessageInfo
+
+func (m *SearchReply) GetResult() string {
+	if m != nil {
+		return m.Result
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*FilePath)(nil), "task.FilePath")
 	proto.RegisterType((*TaskReply)(nil), "task.TaskReply")
+	proto.RegisterType((*IPAddr)(nil), "task.IPAddr")
+	proto.RegisterType((*SearchReply)(nil), "task.SearchReply")
 }
 
 func init() { proto.RegisterFile("task.proto", fileDescriptor_ce5d8dd45b4a91ff) }
 
 var fileDescriptor_ce5d8dd45b4a91ff = []byte{
-	// 150 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2a, 0x49, 0x2c, 0xce,
-	0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0xe4, 0xb8, 0x38, 0xdc, 0x32,
-	0x73, 0x52, 0x03, 0x12, 0x4b, 0x32, 0x84, 0x84, 0xb8, 0x58, 0x0a, 0x12, 0x4b, 0x32, 0x24, 0x18,
-	0x15, 0x18, 0x35, 0x38, 0x83, 0xc0, 0x6c, 0x25, 0x55, 0x2e, 0xce, 0x90, 0xc4, 0xe2, 0xec, 0xa0,
-	0xd4, 0x82, 0x9c, 0x4a, 0x21, 0x09, 0x2e, 0xf6, 0xdc, 0xd4, 0xe2, 0xe2, 0xc4, 0xf4, 0x54, 0xa8,
-	0x1a, 0x18, 0xd7, 0x28, 0x9f, 0x8b, 0xd3, 0xc9, 0x3d, 0x00, 0xa4, 0x32, 0xb5, 0x48, 0xc8, 0x80,
-	0x8b, 0xdb, 0x31, 0x25, 0x25, 0x28, 0xb1, 0x3c, 0x20, 0xb1, 0xa8, 0x38, 0x55, 0x88, 0x4f, 0x0f,
-	0x6c, 0x2b, 0xcc, 0x1a, 0x29, 0x7e, 0x08, 0x1f, 0x6e, 0xac, 0x12, 0x03, 0x54, 0x87, 0x93, 0x7b,
-	0x00, 0xb1, 0x3a, 0x92, 0xd8, 0xc0, 0x9e, 0x30, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x0d, 0x50,
-	0xa2, 0x63, 0xd2, 0x00, 0x00, 0x00,
+	// 225 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x90, 0xc1, 0x4a, 0xc4, 0x30,
+	0x10, 0x86, 0x77, 0xd7, 0xa5, 0x6e, 0x67, 0x65, 0xc5, 0x39, 0x48, 0xd9, 0x83, 0x48, 0xa0, 0xe0,
+	0xc5, 0x22, 0xd5, 0x17, 0x68, 0x0f, 0x96, 0xde, 0x42, 0xf5, 0x05, 0x46, 0x33, 0xd8, 0xd2, 0x4a,
+	0x43, 0x12, 0x11, 0xdf, 0x5e, 0xda, 0xa4, 0xe2, 0x71, 0x6f, 0xf3, 0x91, 0xff, 0x4f, 0xbe, 0x0c,
+	0x80, 0x23, 0xdb, 0x67, 0xda, 0x8c, 0x6e, 0xc4, 0xed, 0x34, 0x8b, 0x1b, 0xd8, 0x3d, 0x77, 0x03,
+	0x4b, 0x72, 0x2d, 0x22, 0x6c, 0x35, 0xb9, 0x36, 0x59, 0xdf, 0xae, 0xef, 0xe2, 0x66, 0x9e, 0x45,
+	0x0a, 0xf1, 0x2b, 0xd9, 0xbe, 0x61, 0x3d, 0xfc, 0x60, 0x02, 0xe7, 0x9f, 0x6c, 0x2d, 0x7d, 0x70,
+	0xc8, 0x2c, 0x28, 0x12, 0x88, 0x6a, 0x59, 0x28, 0x65, 0xf0, 0x00, 0x9b, 0x4e, 0x87, 0xe3, 0x4d,
+	0xa7, 0x45, 0x0a, 0xfb, 0x17, 0x26, 0xf3, 0xde, 0xfa, 0x2b, 0xae, 0x21, 0x32, 0x6c, 0xbf, 0x06,
+	0x17, 0x22, 0x81, 0xf2, 0x11, 0xe2, 0xb2, 0x92, 0xd3, 0x53, 0x6c, 0xf0, 0x01, 0xf6, 0x85, 0x52,
+	0x0d, 0x7d, 0x4b, 0x32, 0x96, 0xf1, 0x90, 0xcd, 0xda, 0x8b, 0xe7, 0xf1, 0xd2, 0xf3, 0x9f, 0x97,
+	0x58, 0x85, 0x46, 0x59, 0xc9, 0x53, 0x1b, 0xf9, 0x13, 0x9c, 0x15, 0xb2, 0xc6, 0x7b, 0xd8, 0x79,
+	0xbd, 0x5a, 0xe2, 0x85, 0x4f, 0xf9, 0x8f, 0x1c, 0xaf, 0x3c, 0xfd, 0x93, 0x17, 0xab, 0xb7, 0x68,
+	0xde, 0xdd, 0xe3, 0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x9f, 0x84, 0xaf, 0xa1, 0x49, 0x01, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -233,6 +318,78 @@ var _BGPTasker_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddBGPParse",
 			Handler:    _BGPTasker_AddBGPParse_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "task.proto",
+}
+
+// APIClient is the client API for API service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type APIClient interface {
+	SearchIP(ctx context.Context, in *IPAddr, opts ...grpc.CallOption) (*SearchReply, error)
+}
+
+type aPIClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAPIClient(cc grpc.ClientConnInterface) APIClient {
+	return &aPIClient{cc}
+}
+
+func (c *aPIClient) SearchIP(ctx context.Context, in *IPAddr, opts ...grpc.CallOption) (*SearchReply, error) {
+	out := new(SearchReply)
+	err := c.cc.Invoke(ctx, "/task.API/SearchIP", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// APIServer is the server API for API service.
+type APIServer interface {
+	SearchIP(context.Context, *IPAddr) (*SearchReply, error)
+}
+
+// UnimplementedAPIServer can be embedded to have forward compatible implementations.
+type UnimplementedAPIServer struct {
+}
+
+func (*UnimplementedAPIServer) SearchIP(ctx context.Context, req *IPAddr) (*SearchReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchIP not implemented")
+}
+
+func RegisterAPIServer(s *grpc.Server, srv APIServer) {
+	s.RegisterService(&_API_serviceDesc, srv)
+}
+
+func _API_SearchIP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IPAddr)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).SearchIP(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/task.API/SearchIP",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).SearchIP(ctx, req.(*IPAddr))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _API_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "task.API",
+	HandlerType: (*APIServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SearchIP",
+			Handler:    _API_SearchIP_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

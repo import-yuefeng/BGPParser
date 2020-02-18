@@ -14,3 +14,16 @@ message FilePath {
 message TaskReply {
     string message = 1;
 }
+
+
+service API {
+    rpc SearchIP (IPAddr) returns (SearchReply) {}
+}
+
+message IPAddr {
+    string ip = 1;
+}
+
+message SearchReply {
+    string result = 1;
+}
