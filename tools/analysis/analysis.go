@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,6 +24,7 @@ type IPAddr struct {
 	bit         Bit
 	Left, Right *IPAddr
 	Hashcode    string
+	lock        sync.Mutex
 }
 
 func NewIPAddr(bit Bit) *IPAddr {
@@ -37,12 +39,17 @@ func NewBGPBST() *BGPBST {
 	}
 }
 
-func (r *BGPBST) Search(ipaddr string) (Hashcode string, isExist error) {
+func (r *BGPBST) Search(ipaddr string) (ResHashcode []string, isExist error) {
 	cur := r.root
 	bs := getBitIPAddr(ipaddr)
+	log.Println(bs)
+	ResHashcode = make([]string, 0)
 	for i := 0; i < 24; i++ {
-		if cur == nil || cur.Hashcode == "" {
-			return "", errors.New("Not find")
+		if cur == nil {
+			break
+		}
+		if cur.Hashcode != "" {
+			ResHashcode = append(ResHashcode, cur.Hashcode)
 		}
 		if bs[i] == 0 {
 			cur = cur.Left
@@ -50,7 +57,10 @@ func (r *BGPBST) Search(ipaddr string) (Hashcode string, isExist error) {
 			cur = cur.Right
 		}
 	}
-	return cur.Hashcode, nil
+	if (cur == nil || cur.Hashcode == "") && len(ResHashcode) == 0 {
+		return ResHashcode, errors.New("Not find")
+	}
+	return ResHashcode, nil
 }
 
 func getBitIPAddr(ipaddr string) []byte {
@@ -65,7 +75,11 @@ func getBitIPAddr(ipaddr string) []byte {
 			return bs
 		}
 		for i := 0; i < 8; i++ {
-			bs[count] = byte(cur & flag)
+			if cur&flag != 0 {
+				bs[count] = byte(1)
+			} else {
+				bs[count] = byte(0)
+			}
 			flag >>= 1
 			count++
 		}
@@ -73,27 +87,38 @@ func getBitIPAddr(ipaddr string) []byte {
 	return bs
 }
 
-func (r *BGPBST) Insert(b *BGPInfo) {
+func (r *BGPBST) Insert(b *SimpleBGPInfo) {
 	root := r.root
 
 	for _, ipSegment := range b.Prefix {
 		tmp := strings.Split(ipSegment, "/")
-		if len(tmp) == 0 {
+		if len(tmp) <= 1 {
 			return
 		}
 		ipv4Address := tmp[0]
+		cidr, err := strconv.Atoi(tmp[1])
+		if cidr > 24 {
+			cidr = 24
+		}
+		if err != nil {
+			log.Warnln(err)
+			continue
+		}
 		cur := root
 		bs := getBitIPAddr(ipv4Address)
-		for i := 0; i < 24; i++ {
+		for i := 0; i < cidr; i++ {
+			cur.lock.Lock()
 			if bs[i] == 0 {
 				if cur.Left == nil {
 					cur.Left = NewIPAddr(0)
 				}
+				cur.lock.Unlock()
 				cur = cur.Left
 			} else {
 				if cur.Right == nil {
 					cur.Right = NewIPAddr(1)
 				}
+				cur.lock.Unlock()
 				cur = cur.Right
 			}
 		}

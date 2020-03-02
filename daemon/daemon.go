@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"runtime"
 	"sync"
@@ -43,9 +44,9 @@ func Daemon() {
 	}
 	// }
 
-	// go func() {
-	// 	log.Println(http.ListenAndServe("bgp-analyze.automesh.org:8000", nil))
-	// }()
+	go func() {
+		log.Println(http.ListenAndServe("bgp-analyze.automesh.org:8000", nil))
+	}()
 
 	s := grpc.NewServer()
 	test.RegisterGreeterServer(s, &server{})
@@ -77,11 +78,21 @@ func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.Task
 }
 
 func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchReply, error) {
+	log.Infoln("search...", in.Ip)
 	if root != nil {
-		hashcode, err := root.Search(in.Ip)
-		if err != nil {
+		hashcodeList, err := root.Search(in.Ip)
+		log.Infoln(hashcodeList)
+		if err != nil || len(hashcodeList) == 0 {
 			log.Infoln(err)
 			return &task.SearchReply{Result: err.Error()}, nil
+		}
+		hashcode := hashcodeList[len(hashcodeList)-1]
+		for _, v := range hashcodeList {
+			if t, ok := md.AsPathMap.Load(v); ok {
+				if res, ok := t.(*analysis.BGPInfo); ok {
+					log.Infoln(res.Prefix)
+				}
+			}
 		}
 		if t, ok := md.AsPathMap.Load(hashcode); ok {
 			if res, ok := t.(*analysis.BGPInfo); ok {

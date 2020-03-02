@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	gobgpdump "github.com/CSUNetSec/gobgpdump"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
@@ -19,7 +20,7 @@ type MetaData struct {
 	AsPathMap sync.Map
 }
 
-func readBGPData(fileName string, ch chan *string, cancel context.CancelFunc) error {
+func readBGPData(fileName string, ch chan *[]byte, cancel context.CancelFunc) error {
 	bgpFP, err := os.Open(fileName)
 	if err != nil {
 		log.Traceln(err)
@@ -32,7 +33,9 @@ func readBGPData(fileName string, ch chan *string, cancel context.CancelFunc) er
 
 	reader := bufio.NewReader(bgpFP)
 
+	// var segment strings.Builder
 	var segment bytes.Buffer
+	// segment.Grow(2429)
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -49,24 +52,27 @@ func readBGPData(fileName string, ch chan *string, cancel context.CancelFunc) er
 				return err
 			}
 		} else {
-			tmp := segment.String()
+			tmp := segment.Next(segment.Len())
 			segment.Reset()
 			ch <- &tmp
 		}
 	}
 }
 
-func (md *MetaData) addAspath(a1 *analysis.BGPInfo) {
-	if tmp, ok := md.AsPathMap.LoadOrStore(a1.Hashcode, a1); ok {
-		if res, ok := tmp.(*analysis.BGPInfo); ok {
-			res.Prefix = append(res.Prefix, a1.Prefix[0])
+func (md *MetaData) addAspath(a *analysis.SimpleBGPInfo) {
+	if len(a.Prefix) == 0 {
+		return
+	}
+	if tmp, ok := md.AsPathMap.LoadOrStore(a.Hashcode, a); ok {
+		if res, ok := tmp.(*analysis.SimpleBGPInfo); ok {
+			res.Prefix = append(res.Prefix, a.Prefix[0])
 		}
 	}
 }
 
 func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST {
 
-	ch := make(chan *string, 0)
+	ch := make(chan *[]byte, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	wg.Add(parserWC * 1000)
@@ -81,15 +87,16 @@ func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST
 						wg.Done()
 						return
 					}
-				case line, ok := <-ch:
+				case data, ok := <-ch:
 					if ok {
-						if len(*line) == 0 {
+						if len(*data) == 0 {
 							continue
 						}
-						a1 := analysis.NewBGPInfo(*line)
-						line = nil
-						a1.AnalysisBGPData()
-						md.addAspath(a1)
+						line := *(*string)(unsafe.Pointer(data))
+						*data = (*data)[:0]
+						a1 := analysis.NewBGPInfo(line)
+						sBGPInfo := a1.AnalysisBGPData()
+						md.addAspath(sBGPInfo)
 					}
 				}
 			}
@@ -98,9 +105,8 @@ func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST
 	wg.Wait()
 	root := analysis.NewBGPBST()
 	md.AsPathMap.Range(func(k, v interface{}) bool {
-		if t, ok := v.(*analysis.BGPInfo); ok {
-			root.Insert(t)
-			log.Infoln(t.Prefix)
+		if t, ok := v.(*analysis.SimpleBGPInfo); ok {
+			go root.Insert(t)
 		}
 		return true
 	})

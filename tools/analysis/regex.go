@@ -21,7 +21,10 @@ func (b *BGPInfo) FindAsPath() []string {
 	tmp := AS_PATH_REGEXP.FindAllStringSubmatch(b.content, -1)
 	for i := 0; i < len(tmp); i++ {
 		for _, v := range tmp[i][1:] {
+			// if len(v) > 0 {
+			// 	v = v[9:]
 			b.Aspath = append(b.Aspath, v)
+			// }
 		}
 	}
 	return b.Aspath
@@ -29,8 +32,7 @@ func (b *BGPInfo) FindAsPath() []string {
 
 func (b *BGPInfo) FindPrefix() {
 	b.Prefix = PREFIX_ADDRESS_REGEXP.FindAllString(b.content, 1)
-}
-
-func (b *BGPInfo) CleanContent() {
-	b.content = ""
+	if len(b.Prefix) > 0 {
+		b.Prefix[0] = b.Prefix[0][8:]
+	}
 }
