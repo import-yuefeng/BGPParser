@@ -7,24 +7,17 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sync"
 
 	task "github.com/import-yuefeng/BGPParser/pb/task"
 	test "github.com/import-yuefeng/BGPParser/pb/test"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
+	marshal "github.com/import-yuefeng/BGPParser/tools/marshal"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 const (
 	PORT = ":2048"
-)
-
-type server struct{}
-
-var (
-	root *analysis.BGPBST
-	md   *MetaData
 )
 
 func Daemon() {
@@ -49,9 +42,16 @@ func Daemon() {
 	}()
 
 	s := grpc.NewServer()
-	test.RegisterGreeterServer(s, &server{})
-	task.RegisterBGPTaskerServer(s, &server{})
-	task.RegisterAPIServer(s, &server{})
+
+	daemonInfo := DaemonInfo{
+		root:    &analysis.BGPBST{},
+		oldroot: &analysis.BGPBST{},
+		md:      &MetaData{},
+		oldmd:   &MetaData{},
+	}
+	test.RegisterGreeterServer(s, &server{daemonInfo})
+	task.RegisterBGPTaskerServer(s, &server{daemonInfo})
+	task.RegisterAPIServer(s, &server{daemonInfo})
 	log.Info("start gRPC service...")
 	s.Serve(lis)
 }
@@ -67,21 +67,42 @@ func (s *server) AddRawParse(ctx context.Context, in *task.FilePath) (*task.Task
 }
 
 func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
-	md = &MetaData{
-		AsPathMap: sync.Map{},
-	}
-	log.Infoln("add bgp parse task:", in.Path)
-
-	root = md.parseBGPData(in.Path, runtime.NumCPU())
-
+	go func() {
+		if s.d.inUpdate {
+			return
+		}
+		s.d.inUpdate = true
+		s.d.oldmd = s.d.md
+		s.d.oldroot = s.d.root
+		s.d.md.TaskList = make([][]*analysis.SimpleBGPInfo, 16)
+		log.Infoln("add bgp parse task:", in.Path)
+		s.d.root = s.d.md.parseBGPData(in.Path, runtime.NumCPU())
+		s.d.inUpdate = false
+		log.Infoln("parse task end...")
+		return
+	}()
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchReply, error) {
 	log.Infoln("search...", in.Ip)
+	marshal.PrintBGPBST(s.d.root)
+	return s.searchByIP(in.Ip)
+}
+
+func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
+	var root *analysis.BGPBST
+	var md *MetaData
+	if s.d.inUpdate {
+		root = s.d.oldroot
+		md = s.d.oldmd
+	} else {
+		root = s.d.root
+		md = s.d.md
+	}
 	if root != nil {
-		hashcodeList, err := root.Search(in.Ip)
-		log.Infoln(hashcodeList)
+		hashcodeList, err := root.Search(ip)
+		log.Warnln(hashcodeList)
 		if err != nil || len(hashcodeList) == 0 {
 			log.Infoln(err)
 			return &task.SearchReply{Result: err.Error()}, nil
@@ -89,17 +110,17 @@ func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchRep
 		hashcode := hashcodeList[len(hashcodeList)-1]
 		for _, v := range hashcodeList {
 			if t, ok := md.AsPathMap.Load(v); ok {
-				if res, ok := t.(*analysis.BGPInfo); ok {
+				if res, ok := t.(*analysis.SimpleBGPInfo); ok {
 					log.Infoln(res.Prefix)
 				}
 			}
 		}
 		if t, ok := md.AsPathMap.Load(hashcode); ok {
-			if res, ok := t.(*analysis.BGPInfo); ok {
+			if res, ok := t.(*analysis.SimpleBGPInfo); ok {
 				return &task.SearchReply{Result: res.Prefix[0]}, nil
 			}
 		}
+		return &task.SearchReply{Result: "Faild, not found."}, nil
 	}
-	return &task.SearchReply{Result: "Faild"}, nil
-
+	return &task.SearchReply{Result: "Building iptree..."}, nil
 }

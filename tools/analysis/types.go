@@ -5,10 +5,12 @@ import (
 )
 
 type AspathList []string
+
 type SimpleBGPInfo struct {
 	Prefix   []string
 	Hashcode string
 }
+
 type BGPInfo struct {
 	Aspath     AspathList
 	Prefix     []string
@@ -16,6 +18,24 @@ type BGPInfo struct {
 	Hashcode   string
 	isSorted   bool
 	content    string
+}
+
+type Bit uint8
+
+type BGPBST struct {
+	root     *IPAddr
+	inBackup sync.RWMutex
+}
+
+// type IPSegmentHashcode string
+
+type IPAddr struct {
+	bit         Bit
+	Left, Right *IPAddr
+	Hashcode    string
+	lock        sync.Mutex
+	id          string
+	inValid     bool
 }
 
 var bgpInfoFree = sync.Pool{
@@ -44,17 +64,4 @@ func newBGPInfo(content string) *BGPInfo {
 
 func NewBGPInfo(content string) *BGPInfo {
 	return newBGPInfo(content)
-}
-
-func (b *BGPInfo) AnalysisBGPData() *SimpleBGPInfo {
-	b.FindPrefix()
-	b.FindAsPath()
-	b.SortASpathBySize()
-	b.ConvertHashcode()
-	res := &SimpleBGPInfo{
-		Prefix:   b.Prefix,
-		Hashcode: b.Hashcode,
-	}
-	bgpInfoFree.Put(b)
-	return res
 }
