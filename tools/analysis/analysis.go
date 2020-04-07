@@ -61,9 +61,9 @@ func getBitIPAddr(ipaddr string) []byte {
 	ip := strings.Split(ipaddr, ".")
 	for index := 0; index < 3; index++ {
 		flag := 1 << 7
-		// if len(ip) <= index {
-		// 	break
-		// }
+		if len(ip) <= index {
+			break
+		}
 		cur, err := strconv.Atoi(ip[index])
 		if err != nil {
 			log.Traceln(err)
@@ -94,7 +94,8 @@ func (r *BGPBST) Insert(b *SimpleBGPInfo) {
 		}
 		ipv4Address := tmp[0]
 		cidr, err := strconv.Atoi(tmp[1])
-		if cidr >= 24 {
+		if cidr > 24 {
+			// log.Infoln("cidr: ", cidr)
 			cidr = 24
 		}
 		if cidr <= 0 {
@@ -140,8 +141,6 @@ func (b *BGPInfo) AnalysisBGPData() *SimpleBGPInfo {
 		Hashcode: b.Hashcode,
 		Prefix:   b.Prefix,
 	}
-	// res.Prefix = make([]string, len(b.Prefix))
-	// copy(res.Prefix, b.Prefix)
 	bgpInfoFree.Put(b)
 	return res
 }

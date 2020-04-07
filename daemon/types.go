@@ -7,10 +7,10 @@ import (
 )
 
 type server struct {
-	d DaemonInfo
 }
 
-type DaemonInfo struct {
+type Daemon struct {
+	logPath  string
 	md       *MetaData
 	oldmd    *MetaData
 	root     *analysis.BGPBST

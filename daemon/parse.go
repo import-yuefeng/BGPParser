@@ -14,14 +14,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (d *DaemonInfo) Read(fileName string, ch chan *string) error {
+func (d *Daemon) Read(fileName string, ch chan *string) error {
 	if err := readBGPData(fileName, ch); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DaemonInfo) Parse(configFile gobgpdump.ConfigFile) {
+func (d *Daemon) Parse(configFile gobgpdump.ConfigFile) {
 	parseBGPRAWData(configFile)
 }
 

@@ -2,26 +2,27 @@ package cmd
 
 import (
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
-	"github.com/spf13/viper"
 	server "github.com/import-yuefeng/BGPParser/daemon"
+	"github.com/spf13/viper"
 )
 
 var (
 	// Used for flags.
 	cfgFile     string
 	userLicense string
-	daemon 	 	bool
+	daemon      bool
 
 	rootCmd = &cobra.Command{
 		Use:   "bgpParser",
 		Short: "A parser for BGPData ",
-		Long: `bgpParser is a CLI tool for Go that parse bdpData.`,
+		Long:  `bgpParser is a CLI tool for Go that parse bdpData.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if daemon {
-				server.Daemon()
+				daemonCli := &server.Daemon{}
+				daemonCli.Run()
 			}
 		},
 	}

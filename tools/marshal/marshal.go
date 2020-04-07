@@ -121,6 +121,7 @@ func printByLevel(r *analysis.BGPBST) [][]*analysis.IPAddr {
 		res = append(res, []*analysis.IPAddr{})
 		for size > 0 {
 			t, err := q.Pop()
+			size--
 			if err != nil {
 				log.Warnln(err)
 				return res
@@ -129,6 +130,9 @@ func printByLevel(r *analysis.BGPBST) [][]*analysis.IPAddr {
 				log.Warnln(ok)
 				return res
 			} else {
+				if v == nil {
+					continue
+				}
 				res[len(res)-1] = append(res[len(res)-1], v)
 				if v.Left != nil {
 					q.Push(v.Left)
@@ -148,6 +152,9 @@ func PrintBGPBST(root *analysis.BGPBST) {
 	for i := 0; i < len(treeNode); i++ {
 		log.Infoln()
 		for j := 0; j < len(treeNode[i]); j++ {
+			if treeNode[i][j] == nil || treeNode[i][j].Hashcode == "" {
+				continue
+			}
 			log.Infof("%s   ", treeNode[i][j].Hashcode[:4])
 		}
 	}
