@@ -19,11 +19,12 @@ BGPParser 是基于 Go 实现的 BGP 数据分析工具
 + 支持 并发分析 由bgpdump 导出的 rib.txt 格式数据 (友好型数据)
 ![](BGPData.png)
 
-* 支持 并发构造 IPTree 树，提供高效的 IP 端查询
+* 支持 并发构造 IPTree 树，提供高效的 IP 段查询
 ![](info.png)
 
-* 支持 合并相似 IP 端数据，并据此构造 IPTree
+* 支持 合并相似 IP 段数据，并据此构造 IPTree
 
+更多技术细节请参考 [这里](bgpParser.pdf)
 
 ## 安装
 我们提供跨平台多版本的 二进制程序可下载： [release](https://github.com/import-yuefeng/BGPParser/releases).
@@ -45,12 +46,12 @@ BGPParser 是基于 Go 实现的 BGP 数据分析工具
 ```
 
 ## 感谢
-+ Dependencies:
-		+ [grpc](google.golang.org/grpc): Apache-2.0 
-		+ [logrus](https://github.com/Sirupsen/logrus): MIT
-		+ [cobra](github.com/spf13/cobra): Apache-2.0 
-		+ [gobgpdump](github.com/CSUNetSec/gobgpdump): BSD 2-Clause “Simplified” License 
-+ Contributors: https://github.com/import-yuefeng/BGPParser/graphs/contributors
+* Dependencies:
+	* [grpc](google.golang.org/grpc): Apache-2.0 
+	* [logrus](https://github.com/Sirupsen/logrus): MIT
+	* [cobra](github.com/spf13/cobra): Apache-2.0 
+	* [gobgpdump](github.com/CSUNetSec/gobgpdump): BSD 2-Clause “Simplified” License 
+* Contributors: https://github.com/import-yuefeng/BGPParser/graphs/contributors
 
 ## 开源协议
 This project is under the MIT license. See the [LICENSE](LICENSE) file for the full license text.
