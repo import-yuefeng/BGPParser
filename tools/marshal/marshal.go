@@ -1,18 +1,103 @@
+// MIT License
+
+// Copyright (c) 2019 Yuefeng Zhu
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 package marshal
 
 import (
+	"bufio"
+	"io"
+	"os"
+	"strings"
+
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
 	utils "github.com/import-yuefeng/BGPParser/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-func Marshal(root *analysis.BGPBST) {
-	// preOrderList, inOrderList := marshal(root)
-
+func Marshal(root *analysis.BGPBST, path string) {
+	if root == nil {
+		return
+	}
+	if len(path) == 0 {
+		path = "iptree"
+	}
+	preOrderList, inOrderList := marshal(root)
+	f, err := os.Create(path)
+	defer f.Close()
+	if err != nil {
+		log.Warnln(err)
+		return
+	}
+	for _, v := range preOrderList {
+		f.WriteString(WriteIPAddrNode(v))
+	}
+	f.WriteString("\n")
+	for _, v := range inOrderList {
+		f.WriteString(WriteIPAddrNode(v))
+	}
 }
 
-func Unmarshal(preOrderList, inOrderList []*analysis.IPAddr) *analysis.BGPBST {
-	return nil
+func WriteIPAddrNode(i *analysis.IPAddr) string {
+	if i.Hashcode != "" {
+		return i.GetID() + "|" + i.Hashcode + " "
+	}
+	return i.GetID() + " "
+}
+
+func Unmarshal(path string) *analysis.BGPBST {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
+	defer f.Close()
+	if err != nil {
+		log.Warnln("Open file error: ", err)
+		return nil
+	}
+	reader := bufio.NewReader(f)
+	point := 0
+	var preOrderList, inOrderList []string
+	for {
+		line, err := reader.ReadString('\n')
+		point++
+		if point&1 == 1 {
+			preOrderList = strings.Split(line, " ")
+			tmp := preOrderList[len(preOrderList)-1]
+			preOrderList[len(preOrderList)-1] = utils.Strip(tmp, "\n")
+			log.Infoln(preOrderList)
+		} else if point&1 == 0 {
+			inOrderList = strings.Split(line, " ")
+			tmp := inOrderList[len(inOrderList)-1]
+			inOrderList[len(inOrderList)-1] = utils.Strip(tmp, "\n")
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Warnln("Read file error!", err)
+			return nil
+		}
+	}
+	r := unmarshal(preOrderList, inOrderList)
+	bst := &analysis.BGPBST{}
+	bst.SetRoot(r)
+	return bst
 }
 
 func marshal(root *analysis.BGPBST) (preOrderList, inOrderList []*analysis.IPAddr) {
@@ -24,8 +109,33 @@ func marshal(root *analysis.BGPBST) (preOrderList, inOrderList []*analysis.IPAdd
 	return preOrderList, inOrderList
 }
 
-func unmarshal(preOrder, inOrder []*analysis.IPAddr) *analysis.BGPBST {
-	return nil
+func unmarshal(preOrder, inOrder []string) *analysis.IPAddr {
+	if len(preOrder) != len(inOrder) || len(preOrder) == 0 {
+		return nil
+	}
+	id := preOrder[0]
+	root := analysis.NewIPAddr(0)
+
+	if len(preOrder) == 1 {
+		return root
+	}
+	point := 0
+	for i, v := range inOrder {
+		if v == id {
+			point = i
+			break
+		}
+	}
+	if point >= len(inOrder) || inOrder[point] != id {
+		return nil
+	}
+	if point > 0 {
+		root.Left = unmarshal(preOrder[1:], inOrder[:point])
+	}
+	if point < len(inOrder)-1 {
+		root.Right = unmarshal(preOrder[point+1:], inOrder[point+1:])
+	}
+	return root
 }
 
 func preOrder(r *analysis.BGPBST) []*analysis.IPAddr {

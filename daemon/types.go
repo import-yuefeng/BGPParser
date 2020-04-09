@@ -30,3 +30,11 @@ func NewMetaData() *MetaData {
 	}
 	return md
 }
+
+func NewDaemon(logPath string, md *MetaData, root *analysis.BGPBST) *Daemon {
+	return &Daemon{
+		logPath: logPath,
+		md:      md,
+		root:    root,
+	}
+}

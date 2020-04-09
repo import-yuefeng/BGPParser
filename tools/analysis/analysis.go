@@ -1,40 +1,43 @@
-package analysis
+// MIT License
 
-// package main
+// Copyright (c) 2019 Yuefeng Zhu
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+package analysis
 
 import (
 	"errors"
 	"strconv"
 	"strings"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func NewIPAddr(bit Bit) *IPAddr {
-	return &IPAddr{
-		bit:  bit,
-		lock: sync.Mutex{},
-	}
-}
-
-func NewBGPBST() *BGPBST {
-	root := &BGPBST{
-		root:     NewIPAddr(0),
-		inBackup: sync.RWMutex{},
-	}
-	return root
-	// t := &SimpleBGPInfo{Hashcode: "000000", Prefix: []string{"0.0.0.0/24"}, }
-	// root.Insert()
-}
-
-func (r *BGPBST) Search(ipaddr string) (ResHashcode []string, isExist error) {
+func (r *BGPBST) Search(ipaddr string) (ResPrefix, ResHashcode []string, isExist error) {
 	r.inBackup.RLock()
 	defer r.inBackup.RUnlock()
 	cur := r.root
 	bs := getBitIPAddr(ipaddr)
 	log.Infoln("Search: ", bs)
 	ResHashcode = make([]string, 0)
+	ResPrefix = make([]string, 0)
 	for i := 0; i < 24; i++ {
 		if cur == nil {
 			break
@@ -42,17 +45,19 @@ func (r *BGPBST) Search(ipaddr string) (ResHashcode []string, isExist error) {
 		if cur.Hashcode != "" {
 			ResHashcode = append(ResHashcode, cur.Hashcode)
 		}
+		if cur.Prefix != "" {
+			ResPrefix = append(ResPrefix, cur.Prefix)
+		}
 		if bs[i] == 0 {
 			cur = cur.Left
 		} else {
 			cur = cur.Right
 		}
 	}
-	log.Infoln(ResHashcode)
 	if len(ResHashcode) == 0 {
-		return ResHashcode, errors.New("Not found")
+		return ResPrefix, ResHashcode, errors.New("Not found")
 	}
-	return ResHashcode, nil
+	return ResPrefix, ResHashcode, nil
 }
 
 func getBitIPAddr(ipaddr string) []byte {
@@ -95,8 +100,7 @@ func (r *BGPBST) Insert(b *SimpleBGPInfo) {
 		ipv4Address := tmp[0]
 		cidr, err := strconv.Atoi(tmp[1])
 		if cidr > 24 {
-			// log.Infoln("cidr: ", cidr)
-			cidr = 24
+			continue
 		}
 		if cidr <= 0 {
 			return
@@ -124,12 +128,10 @@ func (r *BGPBST) Insert(b *SimpleBGPInfo) {
 			}
 		}
 		cur.Hashcode = b.Hashcode
+		cur.Prefix = ipSegment
 	}
+	b = nil
 	return
-}
-
-func (r *BGPBST) GetRoot() *IPAddr {
-	return r.root
 }
 
 func (b *BGPInfo) AnalysisBGPData() *SimpleBGPInfo {
@@ -143,6 +145,10 @@ func (b *BGPInfo) AnalysisBGPData() *SimpleBGPInfo {
 	}
 	bgpInfoFree.Put(b)
 	return res
+}
+
+func (r *BGPBST) EncodeIPTree() {
+	r.inOrderEncodeByMorris()
 }
 
 func (r *BGPBST) inOrderEncodeByMorris() {
@@ -176,4 +182,21 @@ func (r *BGPBST) inOrderEncodeByMorris() {
 		}
 	}
 	return
+}
+
+func (r *BGPBST) GetRoot() *IPAddr {
+	return r.root
+}
+
+func (r *BGPBST) SetRoot(root *IPAddr) {
+	r.root = root
+	return
+}
+
+func (i *IPAddr) GetID() string {
+	return i.id
+}
+
+func (i *IPAddr) Getbit() Bit {
+	return i.bit
 }

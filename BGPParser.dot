@@ -1,17 +1,25 @@
 digraph G {
+"github.com/import-yuefeng/BGPParser/pb/test";
+"github.com/import-yuefeng/BGPParser/cmd";
+"github.com/import-yuefeng/BGPParser/daemon"->"github.com/import-yuefeng/BGPParser/pb/test";
 "github.com/import-yuefeng/BGPParser"->"github.com/import-yuefeng/BGPParser/cmd";
-"github.com/import-yuefeng/BGPParser/cmd"->"github.com/import-yuefeng/BGPParser/daemon";
+"github.com/import-yuefeng/BGPParser/pb/task";
+	"BGPParser/utils" -> "BGPParser/ools"
+"github.com/import-yuefeng/BGPParser/cmd/client"->"github.com/import-yuefeng/BGPParser/pb/test";
+"github.com/import-yuefeng/BGPParser/daemon";
 "github.com/import-yuefeng/BGPParser/cmd"->"github.com/import-yuefeng/BGPParser/cmd/client";
 "github.com/import-yuefeng/BGPParser/daemon"->"github.com/import-yuefeng/BGPParser/pb/task";
-"github.com/import-yuefeng/BGPParser/daemon"->"github.com/import-yuefeng/BGPParser/tools/analysis";
-"github.com/import-yuefeng/BGPParser/daemon"->"github.com/import-yuefeng/BGPParser/pb/test";
-"github.com/import-yuefeng/BGPParser/cmd/client"->"github.com/import-yuefeng/BGPParser/pb/test";
 "github.com/import-yuefeng/BGPParser/cmd/client"->"github.com/import-yuefeng/BGPParser/pb/task";
-"github.com/import-yuefeng/BGPParser/pb/task";
-"github.com/import-yuefeng/BGPParser/tools/analysis";
-"github.com/import-yuefeng/BGPParser/pb/test";
+	"BGPParser/tools" -> "BGPParser/aemon"
+	"BGPParser/cmd" -> "BGPParser"
+	"BGPParser/pb" -> "BGPParser/md"
 "github.com/import-yuefeng/BGPParser";
-"github.com/import-yuefeng/BGPParser/cmd";
-"github.com/import-yuefeng/BGPParser/daemon";
+	"BGPParser/daemon" -> "BGPParser/md"
 "github.com/import-yuefeng/BGPParser/cmd/client";
+"github.com/import-yuefeng/BGPParser/cmd"->"github.com/import-yuefeng/BGPParser/daemon";
+	"BGPParser/tools" -> "BGPParser/ools"
+"github.com/import-yuefeng/BGPParser/daemon"->"github.com/import-yuefeng/BGPParser/tools/analysis";
+	"BGPParser/pb" -> "BGPParser/aemon"
+"github.com/import-yuefeng/BGPParser/tools/analysis";
+	"BGPParser/cmd" -> "BGPParser/md"
 }

@@ -1,3 +1,25 @@
+// MIT License
+
+// Copyright (c) 2019 Yuefeng Zhu
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 package daemon
 
 import (
@@ -11,6 +33,7 @@ import (
 	task "github.com/import-yuefeng/BGPParser/pb/task"
 	test "github.com/import-yuefeng/BGPParser/pb/test"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
+	marshal "github.com/import-yuefeng/BGPParser/tools/marshal"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -69,6 +92,21 @@ func (s *server) AddRawParse(ctx context.Context, in *task.FilePath) (*task.Task
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
+func (s *server) LoadIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
+	log.Infoln("load iptree file: ", in.Path)
+	t := marshal.Unmarshal(in.Path)
+	if t != nil {
+		root = t
+	}
+	return &task.TaskReply{Message: "Success"}, nil
+}
+
+func (s *server) SaveIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
+	log.Infoln("save iptree to: ", in.Path)
+	marshal.Marshal(root, in.Path)
+	return &task.TaskReply{Message: "Success"}, nil
+}
+
 func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	go func() {
 		if inUpdate {
@@ -85,7 +123,10 @@ func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.Task
 		log.Infoln("add bgp parse task:", in.Path)
 		root = md.parseBGPData(in.Path, runtime.NumCPU())
 		inUpdate = false
-		log.Infoln("parse task end...")
+		log.Infoln("start encoding iptree")
+		root.EncodeIPTree()
+		log.Infoln("start marshal iptree")
+		marshal.Marshal(root, "iptree")
 		return
 	}()
 	return &task.TaskReply{Message: "Success"}, nil
@@ -102,25 +143,26 @@ func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
 		md = oldmd
 	}
 	if root != nil {
-		hashcodeList, err := root.Search(ip)
-		log.Warnln(hashcodeList)
-		if err != nil || len(hashcodeList) == 0 {
+		prefixList, hashcodeList, err := root.Search(ip)
+		log.Warnln(hashcodeList, prefixList)
+		if err != nil || len(hashcodeList) == 0 || len(prefixList) == 0 {
 			log.Infoln(err)
 			return &task.SearchReply{Result: err.Error()}, nil
 		}
-		hashcode := hashcodeList[len(hashcodeList)-1]
-		for _, v := range hashcodeList {
-			if t, ok := md.AsPathMap.Load(v); ok {
-				if res, ok := t.(*analysis.SimpleBGPInfo); ok {
-					log.Infoln(res.Prefix)
-				}
-			}
-		}
-		if t, ok := md.AsPathMap.Load(hashcode); ok {
-			if res, ok := t.(*analysis.SimpleBGPInfo); ok {
-				return &task.SearchReply{Result: res.Prefix[0]}, nil
-			}
-		}
+		return &task.SearchReply{Result: prefixList[len(prefixList)-1]}, nil
+		// hashcode := hashcodeList[len(hashcodeList)-1]
+		// for _, v := range hashcodeList {
+		// 	if t, ok := md.AsPathMap.Load(v); ok {
+		// 		if res, ok := t.(*analysis.SimpleBGPInfo); ok {
+		// 			log.Infoln(res.Prefix)
+		// 		}
+		// 	}
+		// }
+		// if t, ok := md.AsPathMap.Load(hashcode); ok {
+		// 	if res, ok := t.(*analysis.SimpleBGPInfo); ok {
+		// 		return &task.SearchReply{Result: res.Prefix[0]}, nil
+		// 	}
+		// }
 		return &task.SearchReply{Result: "Faild, not found."}, nil
 	}
 	return &task.SearchReply{Result: "Building iptree..."}, nil
