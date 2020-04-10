@@ -58,7 +58,7 @@ func Marshal(root *analysis.BGPBST, path string) {
 
 func WriteIPAddrNode(i *analysis.IPAddr) string {
 	if i.Hashcode != "" {
-		return i.GetID() + "|" + i.Hashcode + " "
+		return i.GetID() + "|" + i.Prefix + " "
 	}
 	return i.GetID() + " "
 }
@@ -80,7 +80,6 @@ func Unmarshal(path string) *analysis.BGPBST {
 			preOrderList = strings.Split(line, " ")
 			tmp := preOrderList[len(preOrderList)-1]
 			preOrderList[len(preOrderList)-1] = utils.Strip(tmp, "\n")
-			log.Infoln(preOrderList)
 		} else if point&1 == 0 {
 			inOrderList = strings.Split(line, " ")
 			tmp := inOrderList[len(inOrderList)-1]
@@ -109,31 +108,34 @@ func marshal(root *analysis.BGPBST) (preOrderList, inOrderList []*analysis.IPAdd
 	return preOrderList, inOrderList
 }
 
-func unmarshal(preOrder, inOrder []string) *analysis.IPAddr {
-	if len(preOrder) != len(inOrder) || len(preOrder) == 0 {
+func unmarshal(preOrderList, inOrderList []string) *analysis.IPAddr {
+	if len(preOrderList) != len(inOrderList) || len(preOrderList) == 0 {
 		return nil
 	}
-	id := preOrder[0]
+	id := preOrderList[0]
 	root := analysis.NewIPAddr(0)
-
-	if len(preOrder) == 1 {
+	v := strings.Split(id, "|")
+	if len(v) == 2 {
+		root.Prefix = v[1]
+	}
+	if len(preOrderList) == 1 {
 		return root
 	}
 	point := 0
-	for i, v := range inOrder {
+	for i, v := range inOrderList {
 		if v == id {
 			point = i
 			break
 		}
 	}
-	if point >= len(inOrder) || inOrder[point] != id {
-		return nil
+	if point >= len(inOrderList) || inOrderList[point] != id || point == 0 {
+		return root
 	}
 	if point > 0 {
-		root.Left = unmarshal(preOrder[1:], inOrder[:point])
+		root.Left = unmarshal(preOrderList[1:point+1], inOrderList[:point])
 	}
-	if point < len(inOrder)-1 {
-		root.Right = unmarshal(preOrder[point+1:], inOrder[point+1:])
+	if point < len(inOrderList)-1 {
+		root.Right = unmarshal(preOrderList[point+1:], inOrderList[point+1:])
 	}
 	return root
 }

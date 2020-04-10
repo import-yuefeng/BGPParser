@@ -143,27 +143,13 @@ func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
 		md = oldmd
 	}
 	if root != nil {
-		prefixList, hashcodeList, err := root.Search(ip)
-		log.Warnln(hashcodeList, prefixList)
-		if err != nil || len(hashcodeList) == 0 || len(prefixList) == 0 {
+		prefixList, err := root.Search(ip)
+		log.Warnln(prefixList)
+		if err != nil && len(prefixList) == 0 {
 			log.Infoln(err)
 			return &task.SearchReply{Result: err.Error()}, nil
 		}
 		return &task.SearchReply{Result: prefixList[len(prefixList)-1]}, nil
-		// hashcode := hashcodeList[len(hashcodeList)-1]
-		// for _, v := range hashcodeList {
-		// 	if t, ok := md.AsPathMap.Load(v); ok {
-		// 		if res, ok := t.(*analysis.SimpleBGPInfo); ok {
-		// 			log.Infoln(res.Prefix)
-		// 		}
-		// 	}
-		// }
-		// if t, ok := md.AsPathMap.Load(hashcode); ok {
-		// 	if res, ok := t.(*analysis.SimpleBGPInfo); ok {
-		// 		return &task.SearchReply{Result: res.Prefix[0]}, nil
-		// 	}
-		// }
-		return &task.SearchReply{Result: "Faild, not found."}, nil
 	}
 	return &task.SearchReply{Result: "Building iptree..."}, nil
 }

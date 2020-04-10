@@ -30,22 +30,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (r *BGPBST) Search(ipaddr string) (ResPrefix, ResHashcode []string, isExist error) {
+func (r *BGPBST) Search(ipaddr string) (ResPrefix []string, isExist error) {
 	r.inBackup.RLock()
 	defer r.inBackup.RUnlock()
 	cur := r.root
 	bs := getBitIPAddr(ipaddr)
 	log.Infoln("Search: ", bs)
-	ResHashcode = make([]string, 0)
 	ResPrefix = make([]string, 0)
 	for i := 0; i < 24; i++ {
 		if cur == nil {
 			break
 		}
-		if cur.Hashcode != "" {
-			ResHashcode = append(ResHashcode, cur.Hashcode)
-		}
 		if cur.Prefix != "" {
+			log.Infoln(i, cur.Prefix)
 			ResPrefix = append(ResPrefix, cur.Prefix)
 		}
 		if bs[i] == 0 {
@@ -54,10 +51,10 @@ func (r *BGPBST) Search(ipaddr string) (ResPrefix, ResHashcode []string, isExist
 			cur = cur.Right
 		}
 	}
-	if len(ResHashcode) == 0 {
-		return ResPrefix, ResHashcode, errors.New("Not found")
+	if len(ResPrefix) == 0 {
+		return ResPrefix, errors.New("Not found")
 	}
-	return ResPrefix, ResHashcode, nil
+	return ResPrefix, nil
 }
 
 func getBitIPAddr(ipaddr string) []byte {
