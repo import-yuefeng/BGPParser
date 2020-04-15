@@ -24,6 +24,7 @@ package daemon
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -33,6 +34,7 @@ import (
 	task "github.com/import-yuefeng/BGPParser/pb/task"
 	test "github.com/import-yuefeng/BGPParser/pb/test"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
+	compress "github.com/import-yuefeng/BGPParser/tools/compress"
 	marshal "github.com/import-yuefeng/BGPParser/tools/marshal"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -94,16 +96,23 @@ func (s *server) AddRawParse(ctx context.Context, in *task.FilePath) (*task.Task
 
 func (s *server) LoadIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	log.Infoln("load iptree file: ", in.Path)
-	t := marshal.Unmarshal(in.Path[0])
-	if t != nil {
-		root = t
+	files := compress.Uncompress(in.Path[0], "tmpDir")
+	for _, file := range files {
+		root = marshal.Unmarshal(file)
+		if err := os.Remove(file); err != nil {
+			log.Fatalln(err)
+			return &task.TaskReply{Message: "Fail"}, nil
+		}
 	}
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) SaveIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
+	log.Infoln("start encoding iptree")
+	root.EncodeIPTree()
 	log.Infoln("save iptree to: ", in.Path)
 	marshal.Marshal(root, in.Path[0])
+	compress.Compress(in.Path[0], fmt.Sprintf("%s.zip", in.Path[0]))
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
@@ -116,10 +125,6 @@ func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.Task
 		}
 		log.Infoln("add bgp parse task:", in.Path)
 		root = md.parseBGPData(in.Path, runtime.NumCPU())
-		log.Infoln("start encoding iptree")
-		root.EncodeIPTree()
-		log.Infoln("start marshal iptree")
-		marshal.Marshal(root, "iptree")
 		return
 	}()
 	return &task.TaskReply{Message: "Success"}, nil
