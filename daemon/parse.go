@@ -120,9 +120,9 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 
 	ch := make(chan *string, 0)
 	var wg sync.WaitGroup
-	wg.Add(parserWC)
+	wg.Add(parserWC * 300)
 	go readBGPData(fileList, ch)
-	for i := 0; i < parserWC; i++ {
+	for i := 0; i < parserWC*300; i++ {
 		go func(md *MetaData) {
 			for data := range ch {
 				if data == nil || *data == "" {
@@ -141,8 +141,10 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 
 	md.PrefixMap.Range(func(k, v interface{}) bool {
 		if t, ok := v.(*analysis.BGPInfo); ok {
-			t.Hashcode = analysis.PackagingHashcode(t.Hashcode)
-			md.addAspath(t)
+			go func(*analysis.BGPInfo) {
+				t.Hashcode = analysis.PackagingHashcode(t.Hashcode)
+				md.addAspath(t)
+			}(t)
 		}
 		return true
 	})
@@ -152,16 +154,14 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 	wg.Add(len(md.TaskList))
 	for idx, _ := range md.TaskList {
 		go func(taskList []*analysis.BGPInfo) {
-			log.Infoln(len(taskList))
-			for idx, _ := range taskList {
-				root.Insert(taskList[idx])
+			for _, task := range taskList {
+				root.Insert(task)
 			}
 			wg.Done()
 		}(md.TaskList[idx])
 	}
 	wg.Wait()
 	return root
-	return nil
 }
 
 func traceMemStats() {
