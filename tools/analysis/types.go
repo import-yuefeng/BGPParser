@@ -26,20 +26,12 @@ import (
 	"sync"
 )
 
-type AspathList []string
-
-type SimpleBGPInfo struct {
-	Prefix   []string
-	Hashcode string
-}
+type hashcodeSlice []byte
 
 type BGPInfo struct {
-	Aspath     AspathList
-	Prefix     []string
-	Aspath2str string
-	Hashcode   string
-	isSorted   bool
-	content    string
+	Prefix   []string
+	Hashcode string
+	AsPath   string
 }
 
 type Bit uint8
@@ -49,8 +41,6 @@ type BGPBST struct {
 	inBackup sync.RWMutex
 }
 
-// type IPSegmentHashcode string
-
 type IPAddr struct {
 	bit         Bit
 	Left, Right *IPAddr
@@ -59,10 +49,6 @@ type IPAddr struct {
 	lock        sync.Mutex
 	id          string
 	inValid     bool
-}
-
-var bgpInfoFree = sync.Pool{
-	New: func() interface{} { return new(BGPInfo) },
 }
 
 func NewIPAddr(bit Bit) *IPAddr {
@@ -78,30 +64,6 @@ func NewBGPBST() *BGPBST {
 		inBackup: sync.RWMutex{},
 	}
 	return root
-	// t := &SimpleBGPInfo{Hashcode: "000000", Prefix: []string{"0.0.0.0/24"}, }
+	// t := &BGPInfo{Hashcode: "000000", Prefix: []string{"0.0.0.0/24"}, }
 	// root.Insert()
-}
-
-func NewBGPInfo(content string) *BGPInfo {
-	return newBGPInfo(content)
-}
-
-func newBGPInfo(content string) *BGPInfo {
-	buf := bgpInfoFree.Get().(*BGPInfo)
-	CleanBuf(buf)
-	buf.content = content
-	return buf
-}
-
-func CleanBuf(buf *BGPInfo) {
-	buf.content = ""
-	buf.isSorted = false
-	buf.Hashcode = ""
-	buf.Aspath2str = ""
-	if len(buf.Prefix) != 0 {
-		buf.Prefix = buf.Prefix[:1]
-	}
-	if len(buf.Aspath) != 0 {
-		buf.Aspath = buf.Aspath[:1]
-	}
 }

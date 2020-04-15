@@ -39,11 +39,10 @@ import (
 )
 
 var (
-	root     *analysis.BGPBST
-	oldroot  *analysis.BGPBST
-	md       *MetaData
-	oldmd    *MetaData
-	inUpdate bool
+	root    *analysis.BGPBST
+	oldroot *analysis.BGPBST
+	md      *MetaData
+	oldmd   *MetaData
 )
 
 const (
@@ -89,12 +88,13 @@ func (s *server) SayHello(ctx context.Context, in *test.HelloRequest) (*test.Hel
 
 func (s *server) AddRawParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	log.Infoln("add raw-bgp parse task: ", in.Path)
+
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) LoadIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	log.Infoln("load iptree file: ", in.Path)
-	t := marshal.Unmarshal(in.Path)
+	t := marshal.Unmarshal(in.Path[0])
 	if t != nil {
 		root = t
 	}
@@ -103,26 +103,19 @@ func (s *server) LoadIPTree(ctx context.Context, in *task.FilePath) (*task.TaskR
 
 func (s *server) SaveIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	log.Infoln("save iptree to: ", in.Path)
-	marshal.Marshal(root, in.Path)
+	marshal.Marshal(root, in.Path[0])
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	go func() {
-		if inUpdate {
-			return
-		}
-		inUpdate = true
-		oldmd = md
-		oldroot = root
 		if md == nil {
 			md = NewMetaData()
 		} else {
-			md.TaskList = make([][]*analysis.SimpleBGPInfo, 16)
+			md.TaskList = make([][]*analysis.BGPInfo, 16)
 		}
 		log.Infoln("add bgp parse task:", in.Path)
 		root = md.parseBGPData(in.Path, runtime.NumCPU())
-		inUpdate = false
 		log.Infoln("start encoding iptree")
 		root.EncodeIPTree()
 		log.Infoln("start marshal iptree")
@@ -138,10 +131,6 @@ func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchRep
 }
 
 func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
-	if inUpdate {
-		root = oldroot
-		md = oldmd
-	}
 	if root != nil {
 		prefixList, err := root.Search(ip)
 		log.Warnln(prefixList)

@@ -29,11 +29,11 @@ import (
 )
 
 var (
-	loadPath string
+	loadPath []string
 )
 
 func init() {
-	loadCmd.Flags().StringVarP(&loadPath, "filePath", "p", "", "iptree file path")
+	loadCmd.Flags().StringArrayVarP(&loadPath, "filePath", "p", []string{}, "iptree file path")
 	rootCmd.AddCommand(loadCmd)
 }
 
@@ -44,7 +44,7 @@ var loadCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		c := client.NewClient(":2048")
-		if loadPath != "" {
+		if len(loadPath) > 0 {
 			c.LoadIPTree(loadPath)
 		}
 	},

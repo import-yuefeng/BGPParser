@@ -29,11 +29,11 @@ import (
 )
 
 var (
-	savePath string
+	savePath []string
 )
 
 func init() {
-	saveCmd.Flags().StringVarP(&savePath, "filePath", "p", "", "iptree file path")
+	saveCmd.Flags().StringArrayVarP(&savePath, "filePath", "p", []string{}, "iptree file path")
 	rootCmd.AddCommand(saveCmd)
 }
 
@@ -44,7 +44,7 @@ var saveCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		c := client.NewClient(":2048")
-		if savePath != "" {
+		if len(savePath) > 0 {
 			c.SaveIPTree(savePath)
 		}
 	},

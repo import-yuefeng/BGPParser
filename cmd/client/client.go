@@ -62,11 +62,11 @@ func (c *Client) SayHello() {
 	sayHello(c.conn)
 }
 
-func (c *Client) AddRawParse(filepath string) {
+func (c *Client) AddRawParse(filepath []string) {
 	addRawParse(c.conn, filepath)
 }
 
-func (c *Client) AddBGPParse(filepath string) {
+func (c *Client) AddBGPParse(filepath []string) {
 	addBGPParse(c.conn, filepath)
 }
 
@@ -74,15 +74,15 @@ func (c *Client) Search(ipaddr string) {
 	search(c.conn, ipaddr)
 }
 
-func (c *Client) SaveIPTree(filepath string) {
+func (c *Client) SaveIPTree(filepath []string) {
 	saveIPTree(c.conn, filepath)
 }
 
-func (c *Client) LoadIPTree(filepath string) {
+func (c *Client) LoadIPTree(filepath []string) {
 	loadIPTree(c.conn, filepath)
 }
 
-func saveIPTree(conn *grpc.ClientConn, filepath string) {
+func saveIPTree(conn *grpc.ClientConn, filepath []string) {
 	c := task.NewBGPTaskerClient(conn)
 	r, err := c.SaveIPTree(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
@@ -91,7 +91,7 @@ func saveIPTree(conn *grpc.ClientConn, filepath string) {
 	log.Println(r.Message)
 }
 
-func loadIPTree(conn *grpc.ClientConn, filepath string) {
+func loadIPTree(conn *grpc.ClientConn, filepath []string) {
 	c := task.NewBGPTaskerClient(conn)
 	r, err := c.LoadIPTree(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
@@ -110,7 +110,7 @@ func sayHello(conn *grpc.ClientConn) {
 	log.Println(r.Message)
 }
 
-func addRawParse(conn *grpc.ClientConn, filepath string) {
+func addRawParse(conn *grpc.ClientConn, filepath []string) {
 	c := task.NewBGPTaskerClient(conn)
 
 	r, err := c.AddRawParse(context.Background(), &task.FilePath{Path: filepath})
@@ -120,7 +120,7 @@ func addRawParse(conn *grpc.ClientConn, filepath string) {
 	log.Println(r.Message)
 }
 
-func addBGPParse(conn *grpc.ClientConn, filepath string) {
+func addBGPParse(conn *grpc.ClientConn, filepath []string) {
 	c := task.NewBGPTaskerClient(conn)
 
 	r, err := c.AddBGPParse(context.Background(), &task.FilePath{Path: filepath})

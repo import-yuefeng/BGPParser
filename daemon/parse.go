@@ -27,61 +27,54 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	gobgpdump "github.com/CSUNetSec/gobgpdump"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
 	log "github.com/sirupsen/logrus"
 )
 
-func (d *Daemon) Read(fileName string, ch chan *string) error {
-	if err := readBGPData(fileName, ch); err != nil {
+func (d *Daemon) ParseBGPData(fileList []string, ch chan *string) error {
+	if err := readBGPData(fileList, ch); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Daemon) Parse(configFile gobgpdump.ConfigFile) {
-	parseBGPRAWData(configFile)
+func (d *Daemon) ParseRIBData(configFile gobgpdump.ConfigFile) {
+	parseRIBData(configFile)
 }
 
-func readBGPData(fileName string, ch chan *string) error {
-	bgpFP, err := os.Open(fileName)
-	if err != nil {
-		log.Traceln(err)
-		return err
-	}
-	defer bgpFP.Close()
+func readBGPData(fileList []string, ch chan *string) error {
 	defer close(ch)
-	reader := bufio.NewReader(bgpFP)
-	var segment strings.Builder
-	for {
-		line, err := reader.ReadString('\n')
+	var reader *bufio.Reader
+	for _, fileName := range fileList {
+		file, err := os.Open(fileName)
 		if err != nil {
-			if err == io.EOF {
-				log.Infoln("File read ok!")
-				return nil
-			}
-			log.Warnln("Read file error!", err)
+			log.Traceln(err)
 			return err
 		}
-		if !strings.Contains(line, "MRT") {
-			if _, err := segment.WriteString(line); err != nil {
-				log.Traceln(err)
-				return err
+		reader = bufio.NewReader(file)
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				if err == io.EOF {
+					log.Infoln("File read ok!")
+					file.Close()
+					break
+				}
+				log.Warnln("Read file error!", err)
 			}
-			line = ""
-		} else {
-			tmp := segment.String()
-			segment.Reset()
+			tmp := *(*string)(unsafe.Pointer(&line))
 			ch <- &tmp
 		}
 	}
+	return nil
 }
 
-func parseBGPRAWData(configFile gobgpdump.ConfigFile) {
+func parseRIBData(configFile gobgpdump.ConfigFile) {
 	dc, err := gobgpdump.GetDumpConfig(configFile)
 	if err != nil {
 		log.Traceln(err)
@@ -97,50 +90,68 @@ func parseBGPRAWData(configFile gobgpdump.ConfigFile) {
 	dc.SummarizeAndClose(dumpStart)
 }
 
-func (md *MetaData) addAspath(a *analysis.SimpleBGPInfo) {
+func (md *MetaData) addPrefix(a *analysis.BGPInfo) {
+	if len(a.Prefix) == 0 {
+		return
+	}
+	if tmp, exist := md.PrefixMap.LoadOrStore(a.Prefix[0], a); exist {
+		if r, ok := tmp.(*analysis.BGPInfo); ok {
+			r.Hashcode += a.Hashcode
+		}
+	}
+}
+
+func (md *MetaData) addAspath(a *analysis.BGPInfo) {
 	if len(a.Prefix) == 0 {
 		return
 	}
 	if tmp, exist := md.AsPathMap.LoadOrStore(a.Hashcode, a); exist {
-		if r, ok := tmp.(*analysis.SimpleBGPInfo); ok {
-			r.Prefix = append(r.Prefix, a.Prefix[0])
+		if r, ok := tmp.(*analysis.BGPInfo); ok {
+			r.Prefix = append(r.Prefix, a.Prefix...)
 		}
 	} else {
-		b, c, d, e := a.Hashcode[0], a.Hashcode[1], a.Hashcode[2], a.Hashcode[3]
-		idx := (int(b)<<32 | int(c)<<16 | int(d)<<8 | int(e)) % len(md.TaskList)
+		b := a.Hashcode[0]
+		idx := int(b) % len(md.TaskList)
 		md.TaskList[idx] = append(md.TaskList[idx], a)
 	}
 }
 
-func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST {
+func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPBST {
 
 	ch := make(chan *string, 0)
 	var wg sync.WaitGroup
-	wg.Add(parserWC * 1000)
-	go readBGPData(fileName, ch)
-
-	for i := 0; i < parserWC*1000; i++ {
+	wg.Add(parserWC)
+	go readBGPData(fileList, ch)
+	for i := 0; i < parserWC; i++ {
 		go func(md *MetaData) {
 			for data := range ch {
-				if data == nil || len(*data) == 0 {
+				if data == nil || *data == "" {
 					continue
 				}
-				a1 := analysis.NewBGPInfo(*data)
+				binfo := analysis.NewBGPInfo(*data)
 				*data = ""
 				data = nil
-				sBGPInfo := a1.AnalysisBGPData()
-				md.addAspath(sBGPInfo)
+				md.addPrefix(binfo)
 			}
 			wg.Done()
 			return
 		}(md)
 	}
 	wg.Wait()
+
+	md.PrefixMap.Range(func(k, v interface{}) bool {
+		if t, ok := v.(*analysis.BGPInfo); ok {
+			t.Hashcode = analysis.PackagingHashcode(t.Hashcode)
+			md.addAspath(t)
+		}
+		return true
+	})
+
 	runtime.GC()
 	root := analysis.NewBGPBST()
 	wg.Add(len(md.TaskList))
 	for idx, _ := range md.TaskList {
-		go func(taskList []*analysis.SimpleBGPInfo) {
+		go func(taskList []*analysis.BGPInfo) {
 			log.Infoln(len(taskList))
 			for idx, _ := range taskList {
 				root.Insert(taskList[idx])
@@ -150,4 +161,11 @@ func (md *MetaData) parseBGPData(fileName string, parserWC int) *analysis.BGPBST
 	}
 	wg.Wait()
 	return root
+	return nil
+}
+
+func traceMemStats() {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	log.Printf("Alloc:%d(bytes) HeapIdle:%d(bytes) HeapReleased:%d(bytes) \n", ms.Alloc, ms.HeapIdle, ms.HeapReleased)
 }

@@ -29,14 +29,14 @@ import (
 )
 
 var (
-	raw  string
-	data string
+	raw  []string
+	data []string
 	WC   int
 )
 
 func init() {
-	parseCmd.Flags().StringVarP(&raw, "rawFilePath", "r", "", "bgp raw data path")
-	parseCmd.Flags().StringVarP(&data, "filePath", "d", "", "bgp data path")
+	parseCmd.Flags().StringArrayVarP(&raw, "rawFilePath", "r", []string{}, "bgp raw data path")
+	parseCmd.Flags().StringArrayVarP(&data, "filePath", "p", []string{}, "bgp data path")
 	parseCmd.Flags().IntVarP(&WC, "parserWC", "w", 1, "parse worker number")
 
 	rootCmd.AddCommand(parseCmd)
@@ -49,9 +49,9 @@ var parseCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		c := client.NewClient(":2048")
-		if raw != "" {
+		if len(raw) > 0 {
 			c.AddRawParse(raw)
-		} else if data != "" {
+		} else if len(data) > 0 {
 			c.AddBGPParse(data)
 		}
 	},

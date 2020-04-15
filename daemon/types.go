@@ -20,13 +20,14 @@ type Daemon struct {
 
 type MetaData struct {
 	AsPathMap sync.Map
-	TaskList  [][]*analysis.SimpleBGPInfo
+	PrefixMap sync.Map
+	TaskList  [][]*analysis.BGPInfo
 }
 
 func NewMetaData() *MetaData {
 	md := &MetaData{
 		AsPathMap: sync.Map{},
-		TaskList:  make([][]*analysis.SimpleBGPInfo, 16),
+		TaskList:  make([][]*analysis.BGPInfo, 16),
 	}
 	return md
 }
