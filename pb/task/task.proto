@@ -32,7 +32,7 @@ service BGPTasker {
 }
 
 message FilePath {
-    string path = 1;
+    repeated string path = 1;
 }
 
 message TaskReply {

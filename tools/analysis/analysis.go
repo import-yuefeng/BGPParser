@@ -84,11 +84,24 @@ func getBitIPAddr(ipaddr string) []byte {
 	return bs
 }
 
-func (r *BGPBST) Insert(b *SimpleBGPInfo) {
+func (r *BGPBST) Insert(b *BGPInfo) {
 	r.inBackup.RLock()
 	defer r.inBackup.RUnlock()
 	root := r.root
-	for _, ipSegment := range b.Prefix {
+	// if b == nil || b.Prefix == nil || len(b.Prefix) == 0 {
+	// 	return
+	// }
+	// defer func() {
+	// 	if err := recover(); err != nil {
+	// 		log.Warnln(err)
+	// 		log.Warnln(b.Prefix)
+	// 	}
+	// }()
+	for idx, _ := range b.Prefix {
+		ipSegment := b.Prefix[idx]
+		if len(ipSegment) == 0 || ipSegment == "" {
+			continue
+		}
 		tmp := strings.Split(ipSegment, "/")
 		if len(tmp) <= 1 {
 			log.Warnln("syntaxError: ", tmp)
@@ -131,16 +144,22 @@ func (r *BGPBST) Insert(b *SimpleBGPInfo) {
 	return
 }
 
-func (b *BGPInfo) AnalysisBGPData() *SimpleBGPInfo {
-	b.FindPrefix()
-	b.FindAsPath()
-	b.SortASpathBySize()
-	b.ConvertHashcode()
-	res := &SimpleBGPInfo{
-		Hashcode: b.Hashcode,
-		Prefix:   b.Prefix,
+// NewBGPInfo returns the BGPInfo struct.
+func NewBGPInfo(content string) *BGPInfo {
+	/*
+		content(string) Example:
+			TABLE_DUMP2|12/12/19 14:00:00|B|217.192.89.50|
+			3303|1.0.0.0/24|3303 13335|IGP
+
+			idx(5) = 223.255.254.0/24
+			idx(6) = 1299 7473 3758 55415
+		**/
+	r := strings.Split(content, "|")
+	res := &BGPInfo{
+		Prefix: []string{r[5]},
+		AsPath: r[6],
 	}
-	bgpInfoFree.Put(b)
+	res.ConvertHashcode()
 	return res
 }
 
