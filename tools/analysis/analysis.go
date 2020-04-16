@@ -88,15 +88,6 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 	r.inBackup.RLock()
 	defer r.inBackup.RUnlock()
 	root := r.root
-	// if b == nil || b.Prefix == nil || len(b.Prefix) == 0 {
-	// 	return
-	// }
-	// defer func() {
-	// 	if err := recover(); err != nil {
-	// 		log.Warnln(err)
-	// 		log.Warnln(b.Prefix)
-	// 	}
-	// }()
 	for idx, _ := range b.Prefix {
 		ipSegment := b.Prefix[idx]
 		if len(ipSegment) == 0 || ipSegment == "" {
@@ -150,7 +141,6 @@ func NewBGPInfo(content string) *BGPInfo {
 		content(string) Example:
 			TABLE_DUMP2|12/12/19 14:00:00|B|217.192.89.50|
 			3303|1.0.0.0/24|3303 13335|IGP
-
 			idx(5) = 223.255.254.0/24
 			idx(6) = 1299 7473 3758 55415
 		**/

@@ -31,13 +31,11 @@ import (
 var (
 	raw  []string
 	data []string
-	WC   int
 )
 
 func init() {
 	parseCmd.Flags().StringArrayVarP(&raw, "rawFilePath", "r", []string{}, "bgp raw data path")
 	parseCmd.Flags().StringArrayVarP(&data, "filePath", "p", []string{}, "bgp data path")
-	parseCmd.Flags().IntVarP(&WC, "parserWC", "w", 1, "parse worker number")
 
 	rootCmd.AddCommand(parseCmd)
 }

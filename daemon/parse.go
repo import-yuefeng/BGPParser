@@ -25,26 +25,25 @@ package daemon
 import (
 	"bufio"
 	"io"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"runtime"
 	"sync"
-	"time"
 	"unsafe"
 
-	gobgpdump "github.com/CSUNetSec/gobgpdump"
 	analysis "github.com/import-yuefeng/BGPParser/tools/analysis"
 	log "github.com/sirupsen/logrus"
 )
 
-func (d *Daemon) ParseBGPData(fileList []string, ch chan *string) error {
-	if err := readBGPData(fileList, ch); err != nil {
-		return err
-	}
-	return nil
-}
+// func (d *Daemon) ParseBGPData(fileList []string, parserWC int) *analysis.BGPBST {
+// 	return parseBGPData(fileList, parserWC)
+// }
 
-func (d *Daemon) ParseRIBData(configFile gobgpdump.ConfigFile) {
-	parseRIBData(configFile)
+func (d *Daemon) ParseRIBData(files []string) {
+	for _, file := range files {
+		parseRIBData(file)
+	}
 }
 
 func readBGPData(fileList []string, ch chan *string) error {
@@ -74,20 +73,29 @@ func readBGPData(fileList []string, ch chan *string) error {
 	return nil
 }
 
-func parseRIBData(configFile gobgpdump.ConfigFile) {
-	dc, err := gobgpdump.GetDumpConfig(configFile)
+func parseRIBData(file string) {
+	savePath := file + ".txt"
+	cmd := exec.Command("bgpdump", "-m", "-O", savePath, file)
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Traceln(err)
+		log.Fatalln("can not obtain stdout pipe for command:%s\n", err)
 		return
 	}
-	dumpStart := time.Now()
-	wg := &sync.WaitGroup{}
-	for w := 0; w < dc.GetWorkers(); w++ {
-		wg.Add(1)
-		go gobgpdump.DumpWorker(dc, wg)
+	if err := cmd.Start(); err != nil {
+		log.Fatalln("the command is err,", err)
+		return
 	}
-	wg.Wait()
-	dc.SummarizeAndClose(dumpStart)
+	bytes, err := ioutil.ReadAll(stdout)
+	if err != nil {
+		log.Fatalln("readall stdout:", err.Error())
+		return
+	}
+	if err := cmd.Wait(); err != nil {
+		log.Fatalln("wait:", err.Error())
+		return
+	}
+	log.Infof("stdout:\n\n %s\n", bytes)
+	log.Infof("save file into: %s\n", savePath)
 }
 
 func (md *MetaData) addPrefix(a *analysis.BGPInfo) {
@@ -162,10 +170,4 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 	}
 	wg.Wait()
 	return root
-}
-
-func traceMemStats() {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	log.Printf("Alloc:%d(bytes) HeapIdle:%d(bytes) HeapReleased:%d(bytes) \n", ms.Alloc, ms.HeapIdle, ms.HeapReleased)
 }

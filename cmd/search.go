@@ -39,6 +39,7 @@ var addCmd = &cobra.Command{
 	Use:   "search",
 	Short: "search ip info",
 	Long:  `search ip info`,
+	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("search ip info")
 		if ip != "" {

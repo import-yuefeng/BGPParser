@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	task "github.com/import-yuefeng/BGPParser/pb/task"
 	test "github.com/import-yuefeng/BGPParser/pb/test"
@@ -41,10 +42,8 @@ import (
 )
 
 var (
-	root    *analysis.BGPBST
-	oldroot *analysis.BGPBST
-	md      *MetaData
-	oldmd   *MetaData
+	root *analysis.BGPBST
+	md   *MetaData
 )
 
 const (
@@ -53,9 +52,7 @@ const (
 
 func (d *Daemon) Run() {
 	log.Info("hello, now is daemon mode")
-
 	lis, err := net.Listen("tcp", PORT)
-
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -69,13 +66,10 @@ func (d *Daemon) Run() {
 	} else {
 		log.SetOutput(io.MultiWriter(os.Stdout))
 	}
-
 	go func() {
 		log.Println(http.ListenAndServe("bgp-analyze.automesh.org:8000", nil))
 	}()
-
 	s := grpc.NewServer()
-
 	test.RegisterGreeterServer(s, &server{})
 	task.RegisterBGPTaskerServer(s, &server{})
 	task.RegisterAPIServer(s, &server{})
@@ -89,53 +83,31 @@ func (s *server) SayHello(ctx context.Context, in *test.HelloRequest) (*test.Hel
 }
 
 func (s *server) AddRawParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
-	log.Infoln("add raw-bgp parse task: ", in.Path)
-
+	go addRawParse(in.Path)
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) LoadIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
 	log.Infoln("load iptree file: ", in.Path)
-	files := compress.Uncompress(in.Path[0], "tmpDir")
-	for _, file := range files {
-		root = marshal.Unmarshal(file)
-		if err := os.Remove(file); err != nil {
-			log.Fatalln(err)
-			return &task.TaskReply{Message: "Fail"}, nil
-		}
-	}
-	return &task.TaskReply{Message: "Success"}, nil
+	return loadIPTree(in.Path)
 }
 
 func (s *server) SaveIPTree(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
-	log.Infoln("start encoding iptree")
-	root.EncodeIPTree()
-	log.Infoln("save iptree to: ", in.Path)
-	marshal.Marshal(root, in.Path[0])
-	compress.Compress(in.Path[0], fmt.Sprintf("%s.zip", in.Path[0]))
+	go saveIPTree(in.Path[0])
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.TaskReply, error) {
-	go func() {
-		if md == nil {
-			md = NewMetaData()
-		} else {
-			md.TaskList = make([][]*analysis.BGPInfo, 16)
-		}
-		log.Infoln("add bgp parse task:", in.Path)
-		root = md.parseBGPData(in.Path, runtime.NumCPU())
-		return
-	}()
+	go addBGPParse(in.Path)
 	return &task.TaskReply{Message: "Success"}, nil
 }
 
 func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchReply, error) {
 	log.Infoln("search...", in.Ip)
-	return s.searchByIP(in.Ip)
+	return searchByIP(in.Ip)
 }
 
-func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
+func searchByIP(ip string) (*task.SearchReply, error) {
 	if root != nil {
 		prefixList, err := root.Search(ip)
 		log.Warnln(prefixList)
@@ -146,4 +118,43 @@ func (s *server) searchByIP(ip string) (*task.SearchReply, error) {
 		return &task.SearchReply{Result: prefixList[len(prefixList)-1]}, nil
 	}
 	return &task.SearchReply{Result: "Building iptree..."}, nil
+}
+
+func addBGPParse(paths []string) {
+	if md == nil {
+		md = NewMetaData()
+	} else {
+		md.TaskList = make([][]*analysis.BGPInfo, 16)
+	}
+	log.Infoln("add bgp parse task:", paths)
+	root = md.parseBGPData(paths, runtime.NumCPU())
+	return
+}
+
+func loadIPTree(paths []string) (*task.TaskReply, error) {
+	files := compress.Uncompress(paths[0], "tmpDir")
+	for _, file := range files {
+		root = marshal.Unmarshal(file)
+		if err := os.Remove(file); err != nil {
+			log.Fatalln(err)
+			return &task.TaskReply{Message: "Fail"}, nil
+		}
+	}
+	return &task.TaskReply{Message: "Success"}, nil
+}
+
+func addRawParse(paths []string) {
+	log.Infoln("add raw-bgp parse task: ", paths)
+	for _, file := range strings.Split(paths[0], " ") {
+		// file := file
+		go parseRIBData(file)
+	}
+}
+
+func saveIPTree(path string) {
+	log.Infoln("start encoding iptree")
+	root.EncodeIPTree()
+	log.Infoln("save iptree to: ", path)
+	marshal.Marshal(root, path)
+	compress.Compress(path, fmt.Sprintf("%s.zip", path))
 }
