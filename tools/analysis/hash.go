@@ -24,7 +24,6 @@ package analysis
 
 import (
 	"crypto/sha1"
-	"fmt"
 	"io"
 )
 
@@ -34,12 +33,12 @@ func PackagingHashcode(hashcode string) string {
 	SortHashcode(res)
 	hashcode = string(res)
 	io.WriteString(tmp, hashcode)
-	return fmt.Sprintf("%x", tmp.Sum(nil))
+	return string(tmp.Sum(nil))
 }
 
 func (b *BGPInfo) ConvertHashcode() {
 	tmp := sha1.New()
 	io.WriteString(tmp, b.AsPath)
-	b.Hashcode = fmt.Sprintf("%x", tmp.Sum(nil))
+	b.Hashcode = string(tmp.Sum(nil))
 	return
 }

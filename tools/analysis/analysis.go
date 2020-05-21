@@ -35,14 +35,12 @@ func (r *BGPBST) Search(ipaddr string) (ResPrefix []string, isExist error) {
 	defer r.inBackup.RUnlock()
 	cur := r.root
 	bs := getBitIPAddr(ipaddr)
-	log.Infoln("Search: ", bs)
 	ResPrefix = make([]string, 0)
 	for i := 0; i < 24; i++ {
 		if cur == nil {
 			break
 		}
 		if cur.Prefix != "" {
-			log.Infoln(i, cur.Prefix)
 			ResPrefix = append(ResPrefix, cur.Prefix)
 		}
 		if bs[i] == 0 {
@@ -100,36 +98,41 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 		}
 		ipv4Address := tmp[0]
 		cidr, err := strconv.Atoi(tmp[1])
-		if cidr > 24 {
+		if cidr > 24 || cidr <= 0 {
 			continue
 		}
-		if cidr <= 0 {
-			return
-		}
 		if err != nil {
-			log.Warnln("error: ", err, tmp)
+			log.Warnln("cidr2int error: ", err, tmp)
 			continue
 		}
 		cur := root
 		bs := getBitIPAddr(ipv4Address)
+
 		for i := 0; i < cidr; i++ {
 			cur.lock.Lock()
-			if bs[i] == 0 {
-				if cur.Left == nil {
-					cur.Left = NewIPAddr(0)
+			if i < cidr-1 {
+				if bs[i] == 0 {
+					if cur.Left == nil {
+						cur.Left = NewIPAddr(0)
+					}
+					next := cur.Left
+					cur.lock.Unlock()
+					cur = next
+				} else {
+					if cur.Right == nil {
+						cur.Right = NewIPAddr(1)
+					}
+					next := cur.Right
+					cur.lock.Unlock()
+					cur = next
 				}
-				cur.lock.Unlock()
-				cur = cur.Left
 			} else {
-				if cur.Right == nil {
-					cur.Right = NewIPAddr(1)
-				}
+				cur.Hashcode = b.Hashcode
+				cur.Prefix = ipSegment
 				cur.lock.Unlock()
-				cur = cur.Right
 			}
 		}
-		cur.Hashcode = b.Hashcode
-		cur.Prefix = ipSegment
+
 	}
 	b = nil
 	return

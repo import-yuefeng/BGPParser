@@ -28,7 +28,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"runtime"
 	"sync"
 	"unsafe"
 
@@ -128,9 +127,9 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 
 	ch := make(chan *string, 0)
 	var wg sync.WaitGroup
-	wg.Add(parserWC * 300)
+	wg.Add(parserWC)
 	go readBGPData(fileList, ch)
-	for i := 0; i < parserWC*300; i++ {
+	for i := 0; i < parserWC; i++ {
 		go func(md *MetaData) {
 			for data := range ch {
 				if data == nil || *data == "" {
@@ -157,12 +156,12 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 		return true
 	})
 
-	runtime.GC()
 	root := analysis.NewBGPBST()
 	wg.Add(len(md.TaskList))
 	for idx, _ := range md.TaskList {
 		go func(taskList []*analysis.BGPInfo) {
 			for _, task := range taskList {
+				task := task
 				root.Insert(task)
 			}
 			wg.Done()

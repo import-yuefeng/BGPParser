@@ -146,7 +146,7 @@ func loadIPTree(paths []string) (*task.TaskReply, error) {
 func addRawParse(paths []string) {
 	log.Infoln("add raw-bgp parse task: ", paths)
 	for _, file := range strings.Split(paths[0], " ") {
-		// file := file
+		file := file
 		go parseRIBData(file)
 	}
 }
