@@ -36,34 +36,92 @@ type BGPInfo struct {
 
 type Bit uint8
 
+const (
+	MINIPV4CIDR int = 24
+	MINIPV6CIDR int = 48
+	IPTreeLEVEL int = 128
+)
+
 type BGPBST struct {
 	root     *IPAddr
+	v4root   *IPAddr
 	inBackup sync.RWMutex
 }
 
 type IPAddr struct {
-	bit         Bit
+	id          string
 	Left, Right *IPAddr
 	Hashcode    string
 	Prefix      string
 	lock        sync.Mutex
-	id          string
-	inValid     bool
 }
 
-func NewIPAddr(bit Bit) *IPAddr {
+func NewIPAddr() *IPAddr {
 	return &IPAddr{
-		bit:  bit,
 		lock: sync.Mutex{},
 	}
 }
 
 func NewBGPBST() *BGPBST {
 	root := &BGPBST{
-		root:     NewIPAddr(0),
+		root:     NewIPAddr(),
+		v4root:   NewIPAddr(),
 		inBackup: sync.RWMutex{},
 	}
+	/*
+		IPv4转译地址
+		::ffff:x.x.x.x/96－用于IPv4映射地址。
+	**/
+	var initIPTree []byte = []byte{
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff,
+	}
+
+	bs := make([]byte, 96)
+	count := 0
+	for index := 0; index < 12; index++ {
+		flag := 1 << 7
+		if len(initIPTree) <= index {
+			break
+		}
+		cur := int(initIPTree[index])
+		for i := 0; i < 8; i++ {
+			if cur&flag != 0 {
+				bs[count] = byte(1)
+			} else {
+				bs[count] = byte(0)
+			}
+			flag >>= 1
+			count++
+		}
+	}
+	curNode := root.root
+	cidr := 95
+	for i := 0; i < cidr; i++ {
+		curNode.lock.Lock()
+		if i < cidr-1 {
+			if bs[i] == 0 {
+				if curNode.Left == nil {
+					curNode.Left = NewIPAddr()
+				}
+				next := curNode.Left
+				curNode.lock.Unlock()
+				curNode = next
+			} else {
+				if curNode.Right == nil {
+					curNode.Right = NewIPAddr()
+				}
+				next := curNode.Right
+				curNode.lock.Unlock()
+				curNode = next
+			}
+		} else {
+			if bs[i] == 0 {
+				curNode.Left = root.v4root
+			} else {
+				curNode.Right = root.v4root
+			}
+			curNode.lock.Unlock()
+		}
+	}
 	return root
-	// t := &BGPInfo{Hashcode: "000000", Prefix: []string{"0.0.0.0/24"}, }
-	// root.Insert()
 }

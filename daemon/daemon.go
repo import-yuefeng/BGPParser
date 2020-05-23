@@ -23,11 +23,11 @@
 package daemon
 
 import (
+	"github.com/import-yuefeng/BGPParser/utils"
 	"context"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"runtime"
 	"strings"
@@ -66,9 +66,9 @@ func (d *Daemon) Run() {
 	} else {
 		log.SetOutput(io.MultiWriter(os.Stdout))
 	}
-	go func() {
-		log.Println(http.ListenAndServe("bgp-analyze.automesh.org:8000", nil))
-	}()
+	// go func() {
+	// 	log.Println(http.ListenAndServe("bgp-analyze.automesh.org:8000", nil))
+	// }()
 	s := grpc.NewServer()
 	test.RegisterGreeterServer(s, &server{})
 	task.RegisterBGPTaskerServer(s, &server{})
@@ -104,6 +104,9 @@ func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.Task
 
 func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchReply, error) {
 	log.Infoln("search...", in.Ip)
+	if utils.IsIP(in.Ip) {
+		return &task.SearchReply{Result: "Invalid IP"}, nil
+	}
 	return searchByIP(in.Ip)
 }
 

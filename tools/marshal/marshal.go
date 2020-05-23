@@ -113,7 +113,7 @@ func unmarshal(preOrderList, inOrderList []string) *analysis.IPAddr {
 		return nil
 	}
 	id := preOrderList[0]
-	root := analysis.NewIPAddr(0)
+	root := analysis.NewIPAddr()
 	v := strings.Split(id, "|")
 	if len(v) == 2 {
 		root.Prefix = v[1]
