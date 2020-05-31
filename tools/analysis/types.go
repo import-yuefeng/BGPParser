@@ -68,6 +68,7 @@ func NewBGPBST() *BGPBST {
 		v4root:   NewIPAddr(),
 		inBackup: sync.RWMutex{},
 	}
+	root.v4root.Hashcode = "ipv4Root"
 	/*
 		IPv4转译地址
 		::ffff:x.x.x.x/96－用于IPv4映射地址。
@@ -77,21 +78,21 @@ func NewBGPBST() *BGPBST {
 	}
 
 	bs := make([]byte, 96)
-	count := 0
+	count := 95
 	for index := 0; index < 12; index++ {
-		flag := 1 << 7
+		flag := 1
 		if len(initIPTree) <= index {
 			break
 		}
 		cur := int(initIPTree[index])
 		for i := 0; i < 8; i++ {
-			if cur&flag != 0 {
+			if cur&flag == 1 {
 				bs[count] = byte(1)
-			} else {
+			} else if cur&flag == 0 {
 				bs[count] = byte(0)
 			}
-			flag >>= 1
-			count++
+			cur >>= 1
+			count--
 		}
 	}
 	curNode := root.root
@@ -106,7 +107,7 @@ func NewBGPBST() *BGPBST {
 				next := curNode.Left
 				curNode.lock.Unlock()
 				curNode = next
-			} else {
+			} else if bs[i] == 1 {
 				if curNode.Right == nil {
 					curNode.Right = NewIPAddr()
 				}
@@ -117,7 +118,7 @@ func NewBGPBST() *BGPBST {
 		} else {
 			if bs[i] == 0 {
 				curNode.Left = root.v4root
-			} else {
+			} else if bs[i] == 1 {
 				curNode.Right = root.v4root
 			}
 			curNode.lock.Unlock()

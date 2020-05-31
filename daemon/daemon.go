@@ -23,7 +23,6 @@
 package daemon
 
 import (
-	"github.com/import-yuefeng/BGPParser/utils"
 	"context"
 	"fmt"
 	"io"
@@ -31,6 +30,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/import-yuefeng/BGPParser/utils"
 
 	task "github.com/import-yuefeng/BGPParser/pb/task"
 	test "github.com/import-yuefeng/BGPParser/pb/test"
@@ -103,8 +104,8 @@ func (s *server) AddBGPParse(ctx context.Context, in *task.FilePath) (*task.Task
 }
 
 func (s *server) SearchIP(ctx context.Context, in *task.IPAddr) (*task.SearchReply, error) {
-	log.Infoln("search...", in.Ip)
-	if utils.IsIP(in.Ip) {
+	log.Infoln("search: ", in.Ip)
+	if !utils.IsIP(in.Ip) {
 		return &task.SearchReply{Result: "Invalid IP"}, nil
 	}
 	return searchByIP(in.Ip)

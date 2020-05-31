@@ -42,32 +42,33 @@ func (r *BGPBST) Search(ipaddr string) (ResPrefix []string, isExist error) {
 
 	ResPrefix = make([]string, 0)
 
-	var rangeNumber int
 	var curNode *IPAddr
 
 	bs := splitIPAddr(ipaddr)
 
 	if utils.IsIPV4(ipaddr) {
-		rangeNumber = MINIPV4CIDR
 		curNode = r.v4root
 	} else if utils.IsIPV6(ipaddr) {
-		rangeNumber = MINIPV6CIDR
 		curNode = r.root
 	}
-
-	for i := 0; i < rangeNumber; i++ {
+	log.Infoln(bs)
+	for i := 0; i <= len(bs); i++ {
 		if curNode == nil {
+			log.Infoln(i)
 			break
 		}
 		if curNode.Prefix != "" {
 			ResPrefix = append(ResPrefix, curNode.Prefix)
 		}
-		if bs[i] == 0 {
-			curNode = curNode.Left
-		} else {
-			curNode = curNode.Right
+		if i < len(bs) {
+			if bs[i] == 0 {
+				curNode = curNode.Left
+			} else if bs[i] == 1 {
+				curNode = curNode.Right
+			}
 		}
 	}
+
 	if len(ResPrefix) == 0 {
 		return ResPrefix, errors.New("Not found")
 	}
@@ -76,23 +77,23 @@ func (r *BGPBST) Search(ipaddr string) (ResPrefix []string, isExist error) {
 
 // splitV4Address convert string ipv4 ip address to binary array
 func splitV4Address(bs *[]byte, ipaddr string) error {
-	count := 0
+	count := 23
 	ip := net.ParseIP(ipaddr)
 
-	for index := 12; index < 16; index++ {
-		flag := 1 << 7
+	for index := 14; index >= 12; index-- {
+		flag := 0b01
 		if len(ip) <= index {
 			break
 		}
 		cur := int(ip[index])
 		for i := 0; i < 8; i++ {
-			if cur&flag != 0 {
+			if cur&flag == 1 {
 				(*bs)[count] = byte(1)
-			} else {
+			} else if cur&flag == 0 {
 				(*bs)[count] = byte(0)
 			}
-			flag >>= 1
-			count++
+			cur >>= 1
+			count--
 		}
 	}
 	return nil
@@ -125,23 +126,23 @@ func splitV6Address(bs *[]byte, ipaddr string) error {
 		2001:0DB8:0::0:1428:57ab
 		2001:0DB8::1428:57ab
 	**/
-	count := 0
+	count := 47
 	ip := net.ParseIP(ipaddr)
 
-	for index := 0; index < 6; index++ {
-		flag := 1 << 7
+	for index := 5; index >= 0; index-- {
+		flag := 1
 		if len(ip) <= index {
 			break
 		}
 		cur := int(ip[index])
 		for i := 0; i < 8; i++ {
-			if cur&flag != 0 {
+			if cur&flag == 1 {
 				(*bs)[count] = byte(1)
-			} else {
+			} else if cur&flag == 0 {
 				(*bs)[count] = byte(0)
 			}
-			flag >>= 1
-			count++
+			cur >>= 1
+			count--
 		}
 	}
 	return nil
@@ -181,7 +182,7 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 		tmp := strings.Split(ipSegment, "/")
 		if len(tmp) <= 1 {
 			log.Warnln("syntaxError: ", tmp)
-			return
+			continue
 		}
 		ipaddr := tmp[0]
 		cidr, err := strconv.Atoi(tmp[1])
@@ -189,6 +190,7 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 			log.Warnln("cidr2int error: ", err, tmp)
 		}
 		if (cidr > 24 && utils.IsIPV4(ipaddr)) || (cidr > 48 && utils.IsIPV6(ipaddr)) || cidr <= 0 {
+			// log.Infoln(cidr, ipaddr)
 			continue
 		}
 
@@ -201,7 +203,7 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 		} else if utils.IsIPV6(ipaddr) {
 			curNode = r.root
 		}
-
+		// log.Infoln(bs, cidr, curNode.Hashcode, ipSegment)
 		for i := 0; i < cidr; i++ {
 			curNode.lock.Lock()
 			if i < cidr-1 {
@@ -220,13 +222,12 @@ func (r *BGPBST) Insert(b *BGPInfo) {
 					curNode.lock.Unlock()
 					curNode = next
 				}
-			} else {
+			} else if i == cidr-1 {
 				curNode.Hashcode = b.Hashcode
 				curNode.Prefix = ipSegment
 				curNode.lock.Unlock()
 			}
 		}
-
 	}
 	b = nil
 	return

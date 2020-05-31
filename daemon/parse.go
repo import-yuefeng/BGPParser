@@ -148,6 +148,7 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 
 	md.PrefixMap.Range(func(k, v interface{}) bool {
 		if t, ok := v.(*analysis.BGPInfo); ok {
+			t := t
 			go func(*analysis.BGPInfo) {
 				t.Hashcode = analysis.PackagingHashcode(t.Hashcode)
 				md.addAspath(t)
@@ -159,6 +160,7 @@ func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPB
 	root := analysis.NewBGPBST()
 	wg.Add(len(md.TaskList))
 	for idx, _ := range md.TaskList {
+		idx := idx
 		go func(taskList []*analysis.BGPInfo) {
 			for _, task := range taskList {
 				task := task
