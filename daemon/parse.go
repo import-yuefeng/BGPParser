@@ -35,15 +35,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// func (d *Daemon) ParseBGPData(fileList []string, parserWC int) *analysis.BGPBST {
-// 	return parseBGPData(fileList, parserWC)
+// func (d *Daemon) ParseRIBData(files []string) {
+// 	for _, file := range files {
+// 		parseRIBData(file)
+// 	}
 // }
-
-func (d *Daemon) ParseRIBData(files []string) {
-	for _, file := range files {
-		parseRIBData(file)
-	}
-}
 
 func readBGPData(fileList []string, ch chan *string) error {
 	defer close(ch)
@@ -123,7 +119,7 @@ func (md *MetaData) addAspath(a *analysis.BGPInfo) {
 	}
 }
 
-func (md *MetaData) parseBGPData(fileList []string, parserWC int) *analysis.BGPBST {
+func (md *MetaData) ParseBGPData(fileList []string, parserWC int) *analysis.BGPBST {
 
 	ch := make(chan *string, 0)
 	var wg sync.WaitGroup

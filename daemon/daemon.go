@@ -51,7 +51,7 @@ const (
 	PORT = ":2048"
 )
 
-func (d *Daemon) Run() {
+func (d *Daemon) Run() *grpc.Server {
 	log.Info("hello, now is daemon mode")
 	lis, err := net.Listen("tcp", PORT)
 	if err != nil {
@@ -76,6 +76,7 @@ func (d *Daemon) Run() {
 	task.RegisterAPIServer(s, &server{})
 	log.Info("start gRPC service...")
 	s.Serve(lis)
+	return s
 }
 
 func (s *server) SayHello(ctx context.Context, in *test.HelloRequest) (*test.HelloReply, error) {
@@ -131,7 +132,7 @@ func addBGPParse(paths []string) {
 		md.TaskList = make([][]*analysis.BGPInfo, 16)
 	}
 	log.Infoln("add bgp parse task:", paths)
-	root = md.parseBGPData(paths, runtime.NumCPU())
+	root = md.ParseBGPData(paths, runtime.NumCPU())
 	return
 }
 

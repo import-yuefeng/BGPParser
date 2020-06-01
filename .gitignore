@@ -20,4 +20,5 @@ tmp/
 *.bz2
 *.txt
 iptree
+save_data/
 iptree.zip

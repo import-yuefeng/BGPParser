@@ -62,80 +62,92 @@ func (c *Client) SayHello() {
 	sayHello(c.conn)
 }
 
-func (c *Client) AddRawParse(filepath []string) {
-	addRawParse(c.conn, filepath)
+func (c *Client) AddRawParse(filepath []string) error {
+	return addRawParse(c.conn, filepath)
 }
 
-func (c *Client) AddBGPParse(filepath []string) {
-	addBGPParse(c.conn, filepath)
+func (c *Client) AddBGPParse(filepath []string) error {
+	return addBGPParse(c.conn, filepath)
 }
 
-func (c *Client) Search(ipaddr string) {
-	search(c.conn, ipaddr)
+func (c *Client) Search(ipaddr string) (error, string) {
+	return search(c.conn, ipaddr)
 }
 
-func (c *Client) SaveIPTree(filepath []string) {
-	saveIPTree(c.conn, filepath)
+func (c *Client) SaveIPTree(filepath []string) error {
+	return saveIPTree(c.conn, filepath)
 }
 
-func (c *Client) LoadIPTree(filepath []string) {
-	loadIPTree(c.conn, filepath)
+func (c *Client) LoadIPTree(filepath []string) error {
+	return loadIPTree(c.conn, filepath)
 }
 
-func saveIPTree(conn *grpc.ClientConn, filepath []string) {
+func saveIPTree(conn *grpc.ClientConn, filepath []string) error {
 	c := task.NewBGPTaskerClient(conn)
 	r, err := c.SaveIPTree(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err
 	}
 	log.Println(r.Message)
+	return nil
 }
 
-func loadIPTree(conn *grpc.ClientConn, filepath []string) {
+func loadIPTree(conn *grpc.ClientConn, filepath []string) error {
 	c := task.NewBGPTaskerClient(conn)
 	r, err := c.LoadIPTree(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err
 	}
 	log.Println(r.Message)
+	return nil
 }
 
-func sayHello(conn *grpc.ClientConn) {
+func sayHello(conn *grpc.ClientConn) error {
 	c := test.NewGreeterClient(conn)
 	name := "running..."
 	r, err := c.SayHello(context.Background(), &test.HelloRequest{Name: name})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err
 	}
 	log.Println(r.Message)
+	return nil
 }
 
-func addRawParse(conn *grpc.ClientConn, filepath []string) {
+func addRawParse(conn *grpc.ClientConn, filepath []string) error {
 	c := task.NewBGPTaskerClient(conn)
 
 	r, err := c.AddRawParse(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err
 	}
 	log.Println(r.Message)
+	return nil
 }
 
-func addBGPParse(conn *grpc.ClientConn, filepath []string) {
+func addBGPParse(conn *grpc.ClientConn, filepath []string) error {
 	c := task.NewBGPTaskerClient(conn)
 
 	r, err := c.AddBGPParse(context.Background(), &task.FilePath{Path: filepath})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err
 	}
 	log.Println(r.Message)
+	return nil
 }
 
-func search(conn *grpc.ClientConn, ip string) {
+func search(conn *grpc.ClientConn, ip string) (error, string) {
 	c := task.NewAPIClient(conn)
 
 	r, err := c.SearchIP(context.Background(), &task.IPAddr{Ip: ip})
 	if err != nil {
 		log.Fatalf("process error: ", err)
+		return err, ""
 	}
 	log.Println(r.Result)
+	return nil, r.Result
 }
